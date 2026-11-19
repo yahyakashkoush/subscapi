@@ -1,0 +1,12 @@
+# SubscAPI
+- [x] Unify page typography, spacing, fields, and button sizing for Arabic mobile use.
+- [x] Review admin login and dashboard presentation; improve mobile inventory and client tables.
+- [x] Verify all public pages at mobile and desktop widths; live admin verification awaits the API.
+- [x] Restyle the interface to the user's light subsc.tech reference, with a restrained human-designed appearance.
+- [x] Replace the damaged robot with the user's transparent image, unchanged.
+- [x] Verify the revised desktop and mobile pages and existing interactions.
+- [x] Connect Telegram support to @subscnow.
+- [x] Arabic storefront, shared navigation, and currency switching.
+- [x] Checkout, balance checker, integration guide, and admin inventory interface.
+- [x] Verify core interactions and mobile layout; live delivery and authenticated admin operations require the API.
+- [ ] Connect live API — waiting for a publicly accessible API address.

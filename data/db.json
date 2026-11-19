@@ -1,0 +1,165 @@
+{
+  "settings": {
+    "siteName": "SubscAPI",
+    "siteDomain": "subscapi.com",
+    "defaultUpstreamUrl": "https://api.xingchiapi.com/v1",
+    "defaultHeaders": {
+      "x-openai-actor-authorization": "local-image-extension"
+    },
+    "adminPassword": "admin",
+    "egpRate": 54
+  },
+  "inventory": [
+    {
+      "id": "inv_71562ce0d632",
+      "upstreamKey": "sk-e808c6ee360b9fbc37273c7d4b905a12fd91eca3814655521e5ac3c3c6ff8901",
+      "tier": 100,
+      "initialBalance": 100,
+      "currentBalance": 99.9996,
+      "currency": "USD",
+      "baseUrl": "https://api.xingchiapi.com/v1",
+      "status": "assigned",
+      "label": "مفتاح Starters 100$ - دفعة أولى (متاح)",
+      "addedAt": "2026-11-19T12:38:32.857Z",
+      "lastChecked": "2026-11-19T12:38:32.861Z",
+      "assignedTo": "يحيى عماد",
+      "assignedAt": "2026-11-19T12:38:45.999Z"
+    },
+    {
+      "id": "inv_ecfc17774d4b",
+      "upstreamKey": "sk-e808c6ee360b9fbc37273c7d4b905a12fd91eca3814655521e5ac3c3c6ff8902",
+      "tier": 200,
+      "initialBalance": 200,
+      "currentBalance": 200,
+      "currency": "USD",
+      "baseUrl": "https://api.xingchiapi.com/v1",
+      "status": "assigned",
+      "label": "مفتاح Pro 200$ - دفعة أولى (متاح)",
+      "addedAt": "2026-11-19T12:38:32.861Z",
+      "lastChecked": "2026-11-19T12:38:32.861Z",
+      "assignedTo": "يحيى عماد",
+      "assignedAt": "2026-11-19T12:44:08.348Z"
+    },
+    {
+      "id": "inv_cd71b7ffd900",
+      "upstreamKey": "sk-e808c6ee360b9fbc37273c7d4b905a12fd91eca3814655521e5ac3c3c6ff8903",
+      "tier": 500,
+      "initialBalance": 500,
+      "currentBalance": 500,
+      "currency": "USD",
+      "baseUrl": "https://api.xingchiapi.com/v1",
+      "status": "assigned",
+      "label": "مفتاح Enterprise 500$ - دفعة أولى (متاح)",
+      "addedAt": "2026-11-19T12:38:32.861Z",
+      "lastChecked": "2026-11-19T12:38:32.861Z",
+      "assignedTo": "مطور تجريبي",
+      "assignedAt": "2026-11-19T13:19:35.199Z"
+    }
+  ],
+  "clientKeys": [
+    {
+      "id": "cli_d4921ce9fd89",
+      "clientKey": "sk-subsc-500u-16e06cef4a982b8ff9333e5a87a33725",
+      "inventoryKeyId": "inv_cd71b7ffd900",
+      "tier": 500,
+      "customerName": "مطور تجريبي",
+      "customerContact": "test@subscapi.com",
+      "status": "active",
+      "initialBalance": 500,
+      "remainingBalance": 500,
+      "totalRequests": 0,
+      "totalTokens": 0,
+      "createdAt": "2026-11-19T13:19:35.199Z",
+      "lastUsedAt": null,
+      "packageId": "enterprise"
+    },
+    {
+      "id": "cli_036c462e433a",
+      "clientKey": "sk-subsc-100u-97e041c0792252226f324fa60cdc4e40",
+      "inventoryKeyId": "inv_ecfc17774d4b",
+      "tier": 100,
+      "customerName": "يحيى عماد",
+      "customerContact": "",
+      "status": "active",
+      "initialBalance": 100,
+      "remainingBalance": 100,
+      "totalRequests": 0,
+      "totalTokens": 0,
+      "createdAt": "2026-11-19T12:44:08.352Z",
+      "lastUsedAt": null,
+      "packageId": "pkg_100"
+    },
+    {
+      "id": "cli_096c02f3308c",
+      "clientKey": "sk-subsc-100u-d7b86f773103fd64cdbe93da3ea0f90b",
+      "inventoryKeyId": "inv_71562ce0d632",
+      "tier": 100,
+      "customerName": "يحيى عماد",
+      "customerContact": "@yahya_telegram",
+      "status": "active",
+      "initialBalance": 100,
+      "remainingBalance": 100,
+      "totalRequests": 1,
+      "totalTokens": 0,
+      "createdAt": "2026-11-19T12:38:45.999Z",
+      "lastUsedAt": "2026-11-19T12:38:53.817Z",
+      "packageId": "pkg_100"
+    }
+  ],
+  "packages": [
+    {
+      "id": "pkg_100",
+      "tier": 100,
+      "name": "باقة المطورين (Starter)",
+      "nameEn": "Starter 100$",
+      "badge": "الأنسب للبداية",
+      "priceUSD": 100,
+      "priceEGP": 5400,
+      "description": "رصيد 100$ كامل لدعم نماذج الذكاء الاصطناعي الأقوى بدون قيود على عدد الطلبات.",
+      "features": [
+        "رصيد 100 دولار كامل غير منقوص",
+        "دعم نموذج gpt-6.1-sol وجميع نماذج OpenAI",
+        "توجيه مباشر فائق السرعة (Latency < 20ms)",
+        "متوافق 100% مع Cursor و Cline و VSCode و Python",
+        "تسليم وتفعيل فوري للمفتاح في ثوانٍ"
+      ],
+      "popular": false
+    },
+    {
+      "id": "pkg_200",
+      "tier": 200,
+      "name": "باقة المحترفين (Pro Developer)",
+      "nameEn": "Pro 200$",
+      "badge": "الأكثر طلباً 🔥",
+      "priceUSD": 200,
+      "priceEGP": 10800,
+      "description": "الباقة المفضلة للمبرمجين والمطورين وفرق العمل لإنجاز المشاريع البرمجية بكفاءة عالية.",
+      "features": [
+        "رصيد 200 دولار كامل للمشاريع المكثفة",
+        "حدود طلبات مضاعفة RPM / TPM لسرعة البرمجة",
+        "دعم الـ Streaming بدون أي تقطيع أو تأخير",
+        "أولوية توجيه السيرفرات (High Priority Routing)",
+        "تسليم وتفعيل فوري للمفتاح"
+      ],
+      "popular": true
+    },
+    {
+      "id": "pkg_500",
+      "tier": 500,
+      "name": "باقة الشركات والاستوديوهات (Enterprise)",
+      "nameEn": "Enterprise 500$",
+      "badge": "أعلى قيمة وحصة 👑",
+      "priceUSD": 500,
+      "priceEGP": 27000,
+      "description": "حصة ضخمة صممت خصيصاً للشركات واستخدام الوكلاء المتعددين (Multi-Agents) والمهام الكبرى.",
+      "features": [
+        "رصيد 500 دولار كامل بدون أي اقتطاعات",
+        "أعلى سقف لتدفق التوكنات (Unlimited Concurrency)",
+        "سيرفرات مخصصة تضمن استقرار بنسبة 99.99%",
+        "دعم فني خاص على مدار الساعة",
+        "تسليم وتفعيل فوري للمفتاح"
+      ],
+      "popular": false
+    }
+  ]
+}

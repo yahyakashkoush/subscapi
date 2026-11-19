@@ -1,0 +1,14 @@
+{
+  "name": "subscapi",
+  "version": "1.0.0",
+  "description": "SubscAPI Gateway & Subscription Platform",
+  "main": "server.js",
+  "scripts": {
+    "build": "npm install -g pnpm && cd frontend && pnpm install && NITRO_PRESET=node-server pnpm build && cd ..",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}
