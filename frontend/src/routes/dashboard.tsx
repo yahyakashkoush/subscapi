@@ -55,7 +55,7 @@ type PendingOrder = {
 };
 
 function Dashboard() {
-  const { isSignedIn, isLoading, user, isAdmin, openAuthModal } = useAuth();
+  const { isSignedIn, isLoading, isLoaded, user, isAdmin, openAuthModal } = useAuth();
   const [loading, setLoading] = useState(true);
   const [subStatus, setSubStatus] = useState<"active" | "pending_approval" | "none">("none");
   const [subData, setSubData] = useState<SubscriptionData | null>(null);
@@ -140,7 +140,7 @@ function Dashboard() {
     }
   }
 
-  if (!isLoaded || loading) {
+  if (isLoading || !isLoaded || loading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center p-4">
         <RefreshCw className="w-8 h-8 animate-spin text-primary mb-3" />
@@ -150,7 +150,7 @@ function Dashboard() {
   }
 
   // Signed Out View
-  if (!isSignedIn) {
+  if (!isSignedIn || !user) {
     return (
       <section className="dashboard-section py-12 px-4 max-w-lg mx-auto text-center">
         <div className="p-8 rounded-2xl bg-card border border-border shadow-lg space-y-4">
@@ -178,7 +178,7 @@ function Dashboard() {
         <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-right">
           <div>
             <span className="font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5 text-sm">
-              👑 تم التعرف على حساب مدير النظام ({user.email})
+              👑 تم التعرف على حساب مدير النظام ({user?.email})
             </span>
             <p className="text-xs text-muted-foreground mt-0.5">
               يمكنك الانتقال المباشر للوحة الإدارة لمتابعة المخزون وإصدار المفاتيح والطلبات دون أي حواجز.
@@ -196,11 +196,11 @@ function Dashboard() {
       <div className="user-header-card p-6 rounded-2xl bg-gradient-to-r from-card to-accent/30 border border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg ring-2 ring-primary/20">
-            {user.name ? user.name[0].toUpperCase() : "U"}
+            {user?.name ? user.name[0].toUpperCase() : "U"}
           </div>
           <div>
             <h1 className="text-lg font-bold flex items-center gap-2">
-              مرحباً، {user.name || "عزيزي المطور"}
+              مرحباً، {user?.name || "عزيزي المطور"}
               {subStatus === "active" && (
                 <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
                   مشترك نشط ✅
@@ -208,7 +208,7 @@ function Dashboard() {
               )}
             </h1>
             <p className="text-xs text-muted-foreground font-mono" dir="ltr">
-              {user.email}
+              {user?.email}
             </p>
           </div>
         </div>

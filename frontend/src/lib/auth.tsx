@@ -20,6 +20,7 @@ type AuthContextType = {
   isSignedIn: boolean;
   isAdmin: boolean;
   isLoading: boolean;
+  isLoaded: boolean;
   login: () => void;
   register: () => void;
   logout: () => void;
@@ -33,6 +34,7 @@ const AuthContext = createContext<AuthContextType>({
   isSignedIn: false,
   isAdmin: false,
   isLoading: true,
+  isLoaded: false,
   login: () => {},
   register: () => {},
   logout: () => {},
@@ -106,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isSignedIn: Boolean(isSignedIn),
         isAdmin,
         isLoading: !isLoaded,
+        isLoaded: Boolean(isLoaded),
         login: () => openSignIn(),
         register: () => openSignUp(),
         logout,
