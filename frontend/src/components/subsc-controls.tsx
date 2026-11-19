@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { api, price, type packages } from "@/lib/subsc";
 import { useCurrency } from "./subsc-shell";
-import { useUser, SignInButton } from "@clerk/react";
+import { useAuth } from "@/lib/auth";
 
 export function CopyBox({ value, label }: { value: string; label?: string }) {
   const [copied, setCopied] = useState(false);
@@ -65,7 +65,7 @@ export function Checkout({
   close: () => void;
 }) {
   const { currency } = useCurrency();
-  const { isSignedIn, user } = useUser();
+  const { isSignedIn, user, openAuthModal } = useAuth();
   const [method, setMethod] = useState<PaymentMethod>("vodafone");
   const [selectedModel, setSelectedModel] = useState<string>("GPT ASTRA");
   const [busy, setBusy] = useState(false);
@@ -129,8 +129,9 @@ export function Checkout({
           data: {
             tier: selected.amount,
             model: selectedModel,
-            customerName: user?.fullName || user?.username || "عميل فودافون كاش",
-            customerEmail: user?.primaryEmailAddress?.emailAddress,
+            customerName: user?.name || "عميل فودافون كاش",
+            customerEmail: user?.email,
+            userId: user?.id,
             clerkUserId: user?.id,
           },
         }
@@ -194,9 +195,10 @@ export function Checkout({
           txId: txId.trim(),
           tier: selected.amount,
           model: selectedModel,
+          userId: user?.id,
           clerkUserId: user?.id,
-          customerName: user?.fullName || user?.username,
-          customerEmail: user?.primaryEmailAddress?.emailAddress,
+          customerName: user?.name,
+          customerEmail: user?.email,
         },
       });
 
@@ -227,9 +229,10 @@ export function Checkout({
           data: {
             tier: selected.amount,
             model: selectedModel,
+            userId: user?.id,
             clerkUserId: user?.id,
-            customerName: user?.fullName || user?.username || senderName,
-            customerEmail: user?.primaryEmailAddress?.emailAddress,
+            customerName: user?.name || senderName,
+            customerEmail: user?.email,
             senderName,
             senderPhone,
             transactionRef: instaRef,
@@ -349,12 +352,10 @@ export function Checkout({
                 لحماية حسابك ورصيدك، يتم ربط كل مفتاح API بحساب موثق. التسجيل يستغرق ثوانٍ معدودة.
               </p>
             </div>
-            <SignInButton mode="modal">
-              <Button variant="premium" size="lg" className="w-full">
-                <LogIn size={16} />
-                تسجيل الدخول أو حساب جديد للمتابعة
-              </Button>
-            </SignInButton>
+            <Button variant="premium" size="lg" className="w-full" onClick={() => openAuthModal("login")}>
+              <LogIn size={16} />
+              تسجيل الدخول أو حساب جديد للمتابعة
+            </Button>
           </div>
         ) : (
           /* Payment Methods Selection */

@@ -90,21 +90,41 @@ export async function api<T>(
     data?: unknown;
     token?: string;
     clerkEmail?: string;
+    userEmail?: string;
     headers?: Record<string, string>;
   } = {},
 ): Promise<T> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
   try {
+    let savedToken = options.token;
+    let savedEmail = options.userEmail || options.clerkEmail;
+    let savedUserId = "";
+
+    if (typeof window !== "undefined") {
+      try {
+        if (!savedToken) savedToken = localStorage.getItem("subsc_auth_token") || undefined;
+        const savedUserStr = localStorage.getItem("subsc_user");
+        if (savedUserStr) {
+          const u = JSON.parse(savedUserStr);
+          if (!savedEmail && u.email) savedEmail = u.email;
+          if (u.id) savedUserId = u.id;
+        }
+      } catch {}
+    }
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...(savedToken ? { "Authorization": `Bearer ${savedToken}`, "x-user-token": savedToken } : {}),
+      ...(savedEmail ? { "x-user-email": savedEmail, "x-clerk-user-email": savedEmail } : {}),
+      ...(savedUserId ? { "x-user-id": savedUserId, "x-clerk-user-id": savedUserId } : {}),
+      ...(options.headers || {}),
+    };
+
     const response = await fetch(`${apiBase}${path}`, {
       method: options.method || "GET",
       signal: controller.signal,
-      headers: {
-        "Content-Type": "application/json",
-        ...(options.token ? { "x-admin-token": options.token } : {}),
-        ...(options.clerkEmail ? { "x-clerk-user-email": options.clerkEmail } : {}),
-        ...(options.headers || {}),
-      },
+      headers: headers,
       ...(options.data ? { body: JSON.stringify(options.data) } : {}),
     });
     const result = await response.json();

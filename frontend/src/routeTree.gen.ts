@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as BalanceRouteImport } from './routes/balance'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as GuideRouteImport } from './routes/guide'
+import { Route as SysPortal9287RouteImport } from './routes/sys-portal-9287'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,6 +41,11 @@ const GuideRoute = GuideRouteImport.update({
   path: '/guide',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SysPortal9287Route = SysPortal9287RouteImport.update({
+  id: '/sys-portal-9287',
+  path: '/sys-portal-9287',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/balance': typeof BalanceRoute
   '/dashboard': typeof DashboardRoute
   '/guide': typeof GuideRoute
+  '/sys-portal-9287': typeof SysPortal9287Route
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/balance': typeof BalanceRoute
   '/dashboard': typeof DashboardRoute
   '/guide': typeof GuideRoute
+  '/sys-portal-9287': typeof SysPortal9287Route
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +70,22 @@ export interface FileRoutesById {
   '/balance': typeof BalanceRoute
   '/dashboard': typeof DashboardRoute
   '/guide': typeof GuideRoute
+  '/sys-portal-9287': typeof SysPortal9287Route
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/balance' | '/dashboard' | '/guide'
+  fullPaths:
+    '/' | '/admin' | '/balance' | '/dashboard' | '/guide' | '/sys-portal-9287'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/balance' | '/dashboard' | '/guide'
-  id: '__root__' | '/' | '/admin' | '/balance' | '/dashboard' | '/guide'
+  to: '/' | '/admin' | '/balance' | '/dashboard' | '/guide' | '/sys-portal-9287'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/balance'
+    | '/dashboard'
+    | '/guide'
+    | '/sys-portal-9287'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,6 +94,7 @@ export interface RootRouteChildren {
   BalanceRoute: typeof BalanceRoute
   DashboardRoute: typeof DashboardRoute
   GuideRoute: typeof GuideRoute
+  SysPortal9287Route: typeof SysPortal9287Route
 }
 
 declare module '@tanstack/react-router' {
@@ -116,6 +134,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GuideRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sys-portal-9287': {
+      id: '/sys-portal-9287'
+      path: '/sys-portal-9287'
+      fullPath: '/sys-portal-9287'
+      preLoaderRoute: typeof SysPortal9287RouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -125,6 +150,7 @@ const rootRouteChildren: RootRouteChildren = {
   BalanceRoute: BalanceRoute,
   DashboardRoute: DashboardRoute,
   GuideRoute: GuideRoute,
+  SysPortal9287Route: SysPortal9287Route,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

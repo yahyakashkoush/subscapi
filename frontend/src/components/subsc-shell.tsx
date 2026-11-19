@@ -1,20 +1,34 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, useRef, useEffect, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { Menu, X, Send, ShieldCheck, ArrowUpLeft, LogIn, Sparkles } from "lucide-react";
+import { Menu, X, Send, ShieldCheck, ArrowUpLeft, LogIn, Sparkles, ShieldAlert, LogOut, KeyRound, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import robot from "@/assets/subsc-robot-original-transparent.png.asset.json";
 import type { Currency } from "@/lib/subsc";
-import { useUser, SignInButton, UserButton } from "@clerk/react";
+import { useAuth } from "@/lib/auth";
 
 const CurrencyContext = createContext<{ currency: Currency; setCurrency: (c: Currency) => void }>({
   currency: "USD",
   setCurrency: () => {},
 });
 export const useCurrency = () => useContext(CurrencyContext);
+
 export function SubscShell({ children }: { children: ReactNode }) {
   const [currency, setCurrency] = useState<Currency>("USD");
   const [menu, setMenu] = useState(false);
-  const { isSignedIn } = useUser();
+  const [userDropdown, setUserDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const { user, isSignedIn, isAdmin, logout, openAuthModal } = useAuth();
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setUserDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
     <CurrencyContext.Provider value={{ currency, setCurrency }}>
       <div className="site-shell" dir="rtl">
@@ -43,6 +57,12 @@ export function SubscShell({ children }: { children: ReactNode }) {
                   حسابي ومفاتيحي
                 </Link>
               )}
+              {isAdmin && (
+                <Link to="/sys-portal-9287" onClick={() => setMenu(false)} className="text-amber-500 font-bold flex items-center gap-1">
+                  <ShieldAlert size={14} />
+                  لوحة الإدارة
+                </Link>
+              )}
             </nav>
             <div className="header-actions">
               <div className="currency-toggle" dir="ltr">
@@ -60,24 +80,96 @@ export function SubscShell({ children }: { children: ReactNode }) {
                 ))}
               </div>
 
+              {/* Direct Admin Access Button if Signed in as Admin */}
+              {isAdmin && (
+                <Button variant="premium" size="sm" asChild className="hidden sm:inline-flex items-center gap-1.5 shadow-sm">
+                  <Link to="/sys-portal-9287">
+                    <ShieldAlert size={14} />
+                    لوحة الإدارة
+                  </Link>
+                </Button>
+              )}
+
               {/* User Authentication Status */}
               {!isSignedIn ? (
-                <SignInButton mode="modal">
-                  <Button variant="outline" className="auth-login-btn">
-                    <LogIn size={15} />
-                    تسجيل الدخول
-                  </Button>
-                </SignInButton>
+                <Button variant="outline" className="auth-login-btn" onClick={() => openAuthModal("login")}>
+                  <LogIn size={15} />
+                  تسجيل الدخول
+                </Button>
               ) : (
-                <div className="flex items-center gap-2" dir="ltr">
-                  <UserButton
-                    afterSignOutUrl="/"
-                    appearance={{
-                      elements: {
-                        avatarBox: "w-8 h-8 rounded-full ring-2 ring-primary/30"
-                      }
-                    }}
-                  />
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setUserDropdown(!userDropdown)}
+                    className="flex items-center gap-2 p-1.5 rounded-full hover:bg-muted/80 transition-colors border border-border bg-card text-foreground"
+                    aria-label="قائمة المستخدم"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center text-sm ring-2 ring-primary/20">
+                      {user?.name ? user.name[0].toUpperCase() : "U"}
+                    </div>
+                    <ChevronDown size={14} className="text-muted-foreground ml-1" />
+                  </button>
+
+                  {/* Clean Custom User Dropdown (No Clerk watermarks) */}
+                  {userDropdown && (
+                    <div
+                      className="absolute left-0 mt-2 w-64 rounded-xl border border-border bg-card/95 backdrop-blur-md p-2 shadow-xl z-50 text-right animate-in fade-in zoom-in-95 duration-150"
+                      dir="rtl"
+                    >
+                      <div className="p-2.5 border-b border-border/60">
+                        <div className="font-semibold text-sm text-foreground truncate">{user?.name}</div>
+                        <div className="text-xs text-muted-foreground truncate" dir="ltr">{user?.email}</div>
+                        {isAdmin && (
+                          <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-500 text-[10px] font-bold">
+                            مدير النظام (Admin)
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="py-1">
+                        <Link
+                          to="/dashboard"
+                          onClick={() => setUserDropdown(false)}
+                          className="flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg hover:bg-muted text-foreground transition-colors"
+                        >
+                          <KeyRound size={14} className="text-primary" />
+                          حسابي ومفاتيحي
+                        </Link>
+                        {isAdmin && (
+                          <Link
+                            to="/sys-portal-9287"
+                            onClick={() => setUserDropdown(false)}
+                            className="flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg hover:bg-amber-500/10 text-amber-500 transition-colors"
+                          >
+                            <ShieldAlert size={14} />
+                            لوحة الإدارة والمخزن
+                          </Link>
+                        )}
+                        <Link
+                          to="/balance"
+                          onClick={() => setUserDropdown(false)}
+                          className="flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg hover:bg-muted text-foreground transition-colors"
+                        >
+                          <Sparkles size={14} className="text-primary" />
+                          فحص الرصيد والاستهلاك
+                        </Link>
+                      </div>
+
+                      <div className="pt-1 border-t border-border/60">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUserDropdown(false);
+                            logout();
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg hover:bg-destructive/10 text-destructive transition-colors text-right"
+                        >
+                          <LogOut size={14} />
+                          تسجيل الخروج
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

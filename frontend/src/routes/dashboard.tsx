@@ -21,7 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { api, metadata, packages } from "@/lib/subsc";
 import { CopyBox, Checkout } from "@/components/subsc-controls";
-import { useUser, SignInButton } from "@clerk/react";
+import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
@@ -55,7 +55,7 @@ type PendingOrder = {
 };
 
 function Dashboard() {
-  const { isSignedIn, isLoaded, user } = useUser();
+  const { isSignedIn, isLoading, user, isAdmin, openAuthModal } = useAuth();
   const [loading, setLoading] = useState(true);
   const [subStatus, setSubStatus] = useState<"active" | "pending_approval" | "none">("none");
   const [subData, setSubData] = useState<SubscriptionData | null>(null);
@@ -76,8 +76,8 @@ function Dashboard() {
         pendingOrder?: PendingOrder;
       }>("/api/user/subscription", {
         headers: {
-          "x-clerk-user-id": user.id,
-          "x-clerk-user-email": user.primaryEmailAddress?.emailAddress || "",
+          "x-user-id": user.id,
+          "x-user-email": user.email,
         },
       });
 
@@ -94,12 +94,12 @@ function Dashboard() {
   }
 
   useEffect(() => {
-    if (isLoaded && isSignedIn && user) {
+    if (!isLoading && isSignedIn && user) {
       fetchSubscription();
-    } else if (isLoaded && !isSignedIn) {
+    } else if (!isLoading && !isSignedIn) {
       setLoading(false);
     }
-  }, [isLoaded, isSignedIn, user]);
+  }, [isLoading, isSignedIn, user]);
 
   // Live test of the client API key
   async function testConnection() {
@@ -162,11 +162,9 @@ function Dashboard() {
             يرجى تسجيل الدخول أو إنشاء حساب للوصول إلى لوحة مفتاح الـ API الخاص بك ومتابعة استهلاكك.
           </p>
           <div className="pt-2">
-            <SignInButton mode="modal">
-              <Button variant="premium" size="lg" className="w-full">
-                تسجيل الدخول / حساب جديد
-              </Button>
-            </SignInButton>
+            <Button variant="premium" size="lg" className="w-full" onClick={() => openAuthModal("login")}>
+              تسجيل الدخول / حساب جديد
+            </Button>
           </div>
         </div>
       </section>
@@ -175,15 +173,34 @@ function Dashboard() {
 
   return (
     <div className="dashboard-page max-w-4xl mx-auto py-8 px-4 space-y-6" dir="rtl">
+      {/* Admin Notice Banner if logged in as Admin */}
+      {isAdmin && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-right">
+          <div>
+            <span className="font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5 text-sm">
+              👑 تم التعرف على حساب مدير النظام ({user.email})
+            </span>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              يمكنك الانتقال المباشر للوحة الإدارة لمتابعة المخزون وإصدار المفاتيح والطلبات دون أي حواجز.
+            </p>
+          </div>
+          <Button variant="premium" size="sm" asChild className="shrink-0">
+            <Link to="/sys-portal-9287">
+              لوحة الإدارة والمخزن ⚡
+            </Link>
+          </Button>
+        </div>
+      )}
+
       {/* Top Welcome Card */}
       <div className="user-header-card p-6 rounded-2xl bg-gradient-to-r from-card to-accent/30 border border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg ring-2 ring-primary/20">
-            {user.firstName ? user.firstName[0] : "U"}
+            {user.name ? user.name[0].toUpperCase() : "U"}
           </div>
           <div>
             <h1 className="text-lg font-bold flex items-center gap-2">
-              مرحباً، {user.fullName || user.username || "عزيزي المطور"}
+              مرحباً، {user.name || "عزيزي المطور"}
               {subStatus === "active" && (
                 <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
                   مشترك نشط ✅
@@ -191,7 +208,7 @@ function Dashboard() {
               )}
             </h1>
             <p className="text-xs text-muted-foreground font-mono" dir="ltr">
-              {user.primaryEmailAddress?.emailAddress}
+              {user.email}
             </p>
           </div>
         </div>

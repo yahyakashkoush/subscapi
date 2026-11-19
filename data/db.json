@@ -1098,5 +1098,24 @@
         "دعم فني مخصص على مدار الساعة"
       ]
     }
-  ]
+  ],
+  "users": [
+    {
+      "id": "usr_0695991ffbc3",
+      "name": "yahyaemadkashkoush",
+      "email": "yahyaemadkashkoush@gmail.com",
+      "password": "anypassword",
+      "role": "admin",
+      "createdAt": "2026-11-19T17:36:39.099Z"
+    }
+  ],
+  "sessions": {
+    "subsc_495204941ab7e2958b3d0c3ae024905ef1eb6d5660365b6e": {
+      "userId": "usr_0695991ffbc3",
+      "email": "yahyaemadkashkoush@gmail.com",
+      "role": "admin",
+      "isAdmin": true,
+      "createdAt": 1795109799099
+    }
+  }
 }

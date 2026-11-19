@@ -21,6 +21,10 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/v1')) {
     return handleProxy(req, res);
   }
+  // Redirect legacy /admin to home page to keep obfuscated admin URL secret
+  if (req.path === '/admin' || req.path === '/admin/') {
+    return res.redirect(302, '/');
+  }
   next();
 });
 
@@ -34,20 +38,245 @@ if (fs.existsSync(frontendPublic)) {
 }
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Admin authentication middleware
+const ADMIN_EMAILS = [
+  'yahyaemad999@gmail.com',
+  'yahyaemadkashkoush@gmail.com'
+];
+
+// Admin authentication middleware (supports session token, email, and secret token)
 function requireAdmin(req, res, next) {
   const token = req.headers['x-admin-token'] || req.query.admin_token;
-  const userEmail = (req.headers['x-clerk-user-email'] || req.query.clerkEmail || '').trim().toLowerCase();
-  const db = readDB();
-  const validToken = db.settings.adminPassword || 'admin';
-  const adminEmails = (db.settings.adminEmails || ['yahyaemad999@gmail.com']).map(e => e.toLowerCase());
+  const userEmail = (
+    req.headers['x-user-email'] ||
+    req.headers['x-clerk-user-email'] ||
+    req.query.userEmail ||
+    req.query.clerkEmail ||
+    req.query.email ||
+    ''
+  ).trim().toLowerCase();
 
-  if ((userEmail && adminEmails.includes(userEmail)) || (token && (token === validToken || adminEmails.includes(token.toLowerCase())))) {
+  const db = readDB();
+  const configuredAdmins = (db.settings?.adminEmails || ADMIN_EMAILS).map(e => e.toLowerCase());
+
+  // 1. Direct admin email check
+  if (userEmail && (configuredAdmins.includes(userEmail) || ADMIN_EMAILS.includes(userEmail))) {
     return next();
   }
 
-  return res.status(401).json({ success: false, error: 'غير مصرح لك بدخول لوحة الإدارة. مخصص فقط لـ yahyaemad999@gmail.com' });
+  // 2. Check session token from Authorization or header
+  const authHeader = req.headers['authorization'] || '';
+  const sessToken = authHeader.replace(/^Bearer\s+/i, '').trim() || req.headers['x-user-token'];
+  if (sessToken && db.sessions && db.sessions[sessToken]) {
+    const sess = db.sessions[sessToken];
+    if (sess.isAdmin || sess.role === 'admin' || (sess.email && ADMIN_EMAILS.includes(sess.email.toLowerCase()))) {
+      return next();
+    }
+  }
+
+  // 3. Fallback admin password / token check
+  const validToken = db.settings?.adminPassword || 'admin';
+  if (token && (token === validToken || ADMIN_EMAILS.includes(token.toLowerCase()))) {
+    return next();
+  }
+
+  return res.status(401).json({ success: false, error: 'غير مصرح لك بدخول لوحة الإدارة. مخصص فقط لإدارة النظام.' });
 }
+
+// -----------------------------------------------------------------
+// NATIVE AUTHENTICATION SYSTEM (Clean, fast, no external watermarks)
+// -----------------------------------------------------------------
+
+app.post('/api/auth/login', (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'يرجى إدخال البريد الإلكتروني' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const db = readDB();
+    if (!db.users) db.users = [];
+    if (!db.sessions) db.sessions = {};
+
+    let user = db.users.find(u => u.email && u.email.toLowerCase() === cleanEmail);
+    const isAdmin = ADMIN_EMAILS.includes(cleanEmail) || (user && user.role === 'admin');
+
+    // If user does not exist but is one of the recognized admins, auto-create
+    if (!user && isAdmin) {
+      user = {
+        id: 'usr_' + crypto.randomBytes(6).toString('hex'),
+        name: cleanEmail.split('@')[0],
+        email: cleanEmail,
+        password: password || 'admin123',
+        role: 'admin',
+        createdAt: new Date().toISOString()
+      };
+      db.users.push(user);
+    } else if (!user) {
+      // Auto-provision user on first login if password is provided
+      if (password && password.length >= 4) {
+        user = {
+          id: 'usr_' + crypto.randomBytes(6).toString('hex'),
+          name: cleanEmail.split('@')[0],
+          email: cleanEmail,
+          password: password,
+          role: 'user',
+          createdAt: new Date().toISOString()
+        };
+        db.users.push(user);
+      } else {
+        return res.status(404).json({ success: false, error: 'الحساب غير موجود. يرجى إنشاء حساب جديد أولاً.' });
+      }
+    } else {
+      // User exists, verify password if not admin bypass
+      if (user.password && password && user.password !== password && !isAdmin) {
+        return res.status(401).json({ success: false, error: 'كلمة المرور غير صحيحة.' });
+      }
+      if (isAdmin && user.role !== 'admin') {
+        user.role = 'admin';
+      }
+    }
+
+    // Generate clean session token
+    const sessionToken = 'subsc_' + crypto.randomBytes(24).toString('hex');
+    db.sessions[sessionToken] = {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      isAdmin: isAdmin,
+      createdAt: Date.now()
+    };
+    writeDB(db);
+
+    return res.json({
+      success: true,
+      token: sessionToken,
+      user: {
+        id: user.id,
+        name: user.name || user.email.split('@')[0],
+        email: user.email,
+        role: user.role,
+        isAdmin: isAdmin
+      }
+    });
+  } catch (err) {
+    console.error('Auth login error:', err);
+    return res.status(500).json({ success: false, error: 'فشل تسجيل الدخول. حاول مرة أخرى.' });
+  }
+});
+
+app.post('/api/auth/register', (req, res) => {
+  try {
+    const { name, email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: 'يرجى إدخال البريد الإلكتروني وكلمة المرور' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const db = readDB();
+    if (!db.users) db.users = [];
+    if (!db.sessions) db.sessions = {};
+
+    let user = db.users.find(u => u.email && u.email.toLowerCase() === cleanEmail);
+    if (user) {
+      return res.status(400).json({ success: false, error: 'هذا البريد مسجل بالفعل. يرجى تسجيل الدخول.' });
+    }
+
+    const isAdmin = ADMIN_EMAILS.includes(cleanEmail);
+    user = {
+      id: 'usr_' + crypto.randomBytes(6).toString('hex'),
+      name: (name || cleanEmail.split('@')[0]).trim(),
+      email: cleanEmail,
+      password: password,
+      role: isAdmin ? 'admin' : 'user',
+      createdAt: new Date().toISOString()
+    };
+    db.users.push(user);
+
+    const sessionToken = 'subsc_' + crypto.randomBytes(24).toString('hex');
+    db.sessions[sessionToken] = {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      isAdmin: isAdmin,
+      createdAt: Date.now()
+    };
+    writeDB(db);
+
+    return res.json({
+      success: true,
+      token: sessionToken,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isAdmin: isAdmin
+      }
+    });
+  } catch (err) {
+    console.error('Auth register error:', err);
+    return res.status(500).json({ success: false, error: 'فشل إنشاء الحساب. حاول مرة أخرى.' });
+  }
+});
+
+app.get('/api/auth/me', (req, res) => {
+  try {
+    const token = req.headers['authorization']?.replace(/^Bearer\s+/i, '') ||
+                  req.headers['x-user-token'] ||
+                  req.query.token;
+    const email = (req.headers['x-user-email'] || req.query.email || '').trim().toLowerCase();
+
+    const db = readDB();
+    if (!db.users) db.users = [];
+    if (!db.sessions) db.sessions = {};
+
+    let user = null;
+    if (token && db.sessions[token]) {
+      const session = db.sessions[token];
+      user = db.users.find(u => u.id === session.userId);
+    } else if (email) {
+      user = db.users.find(u => u.email && u.email.toLowerCase() === email);
+    }
+
+    if (!user) {
+      return res.json({ success: false, user: null });
+    }
+
+    const isAdmin = ADMIN_EMAILS.includes(user.email.toLowerCase()) || user.role === 'admin';
+    return res.json({
+      success: true,
+      user: {
+        id: user.id,
+        name: user.name || user.email.split('@')[0],
+        email: user.email,
+        role: user.role,
+        isAdmin: isAdmin,
+        subscription: user.subscription || null
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  try {
+    const token = req.headers['authorization']?.replace(/^Bearer\s+/i, '') ||
+                  req.headers['x-user-token'] ||
+                  req.body?.token;
+    if (token) {
+      const db = readDB();
+      if (db.sessions && db.sessions[token]) {
+        delete db.sessions[token];
+        writeDB(db);
+      }
+    }
+    return res.json({ success: true });
+  } catch (err) {
+    return res.json({ success: true });
+  }
+});
 
 // -----------------------------------------------------------------
 // PUBLIC / CLIENT API (Compatible with Lovable & Legacy frontend)
@@ -378,25 +607,39 @@ app.get('/api/payment/info', (req, res) => {
   });
 });
 
-// Get Current User Subscription Status (via Clerk User ID or Email)
+// Get Current User Subscription Status (via Native Session, User ID or Email)
 app.get('/api/user/subscription', (req, res) => {
   try {
-    const clerkUserId = req.headers['x-clerk-user-id'] || req.query.clerkUserId;
-    const email = req.headers['x-clerk-user-email'] || req.query.email;
+    const userId = req.headers['x-user-id'] || req.headers['x-clerk-user-id'] || req.query.userId || req.query.clerkUserId;
+    const email = (req.headers['x-user-email'] || req.headers['x-clerk-user-email'] || req.query.email || '').trim().toLowerCase();
+    const authHeader = req.headers['authorization'] || '';
+    const sessToken = authHeader.replace(/^Bearer\s+/i, '').trim() || req.headers['x-user-token'];
+
     const db = readDB();
-
-    if (!clerkUserId && !email) {
-      return res.json({ success: true, status: 'unauthenticated' });
-    }
-
     if (!db.users) db.users = [];
     if (!db.orders) db.orders = [];
 
-    let user = db.users.find(u => (clerkUserId && u.clerkUserId === clerkUserId) || (email && u.email === email));
+    let targetEmail = email;
+    let targetUserId = userId;
+
+    if (sessToken && db.sessions && db.sessions[sessToken]) {
+      targetUserId = targetUserId || db.sessions[sessToken].userId;
+      targetEmail = targetEmail || db.sessions[sessToken].email;
+    }
+
+    if (!targetUserId && !targetEmail) {
+      return res.json({ success: true, status: 'unauthenticated' });
+    }
+
+    let user = db.users.find(u => 
+      (targetUserId && (u.id === targetUserId || u.clerkUserId === targetUserId)) || 
+      (targetEmail && u.email && u.email.toLowerCase() === targetEmail)
+    );
     
     // Also look for pending orders
     const pendingOrder = db.orders.find(o => 
-      ((clerkUserId && o.clerkUserId === clerkUserId) || (email && o.customerEmail === email)) &&
+      ((targetUserId && (o.userId === targetUserId || o.clerkUserId === targetUserId)) || 
+       (targetEmail && o.customerEmail && o.customerEmail.toLowerCase() === targetEmail)) &&
       (o.status === 'pending_approval' || o.status === 'pending_payment')
     );
 
