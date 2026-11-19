@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as BalanceRouteImport } from './routes/balance'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as GuideRouteImport } from './routes/guide'
 
 const IndexRoute = IndexRouteImport.update({
@@ -29,6 +30,11 @@ const BalanceRoute = BalanceRouteImport.update({
   path: '/balance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GuideRoute = GuideRouteImport.update({
   id: '/guide',
   path: '/guide',
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/balance': typeof BalanceRoute
+  '/dashboard': typeof DashboardRoute
   '/guide': typeof GuideRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/balance': typeof BalanceRoute
+  '/dashboard': typeof DashboardRoute
   '/guide': typeof GuideRoute
 }
 export interface FileRoutesById {
@@ -52,20 +60,22 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/balance': typeof BalanceRoute
+  '/dashboard': typeof DashboardRoute
   '/guide': typeof GuideRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/balance' | '/guide'
+  fullPaths: '/' | '/admin' | '/balance' | '/dashboard' | '/guide'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/balance' | '/guide'
-  id: '__root__' | '/' | '/admin' | '/balance' | '/guide'
+  to: '/' | '/admin' | '/balance' | '/dashboard' | '/guide'
+  id: '__root__' | '/' | '/admin' | '/balance' | '/dashboard' | '/guide'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   BalanceRoute: typeof BalanceRoute
+  DashboardRoute: typeof DashboardRoute
   GuideRoute: typeof GuideRoute
 }
 
@@ -92,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BalanceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/guide': {
       id: '/guide'
       path: '/guide'
@@ -106,6 +123,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   BalanceRoute: BalanceRoute,
+  DashboardRoute: DashboardRoute,
   GuideRoute: GuideRoute,
 }
 export const routeTree = rootRouteImport

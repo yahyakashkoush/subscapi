@@ -11,6 +11,10 @@ import {
   Trash2,
   Plus,
   LogOut,
+  Clock,
+  CheckCircle,
+  XCircle,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { api, metadata } from "@/lib/subsc";
@@ -29,6 +33,21 @@ type Inventory = {
   status: string;
 };
 type Client = { id: string; clientKey: string; customerName?: string; status: string };
+type Order = {
+  id: string;
+  type: string;
+  tier: number;
+  amountUSD: number;
+  amountEGP?: number;
+  customerName?: string;
+  customerEmail?: string;
+  senderName?: string;
+  senderPhone?: string;
+  transactionRef?: string;
+  txID?: string;
+  status: string;
+  createdAt: string;
+};
 type Stats = {
   totalStockValue?: number;
   totalValue?: number;
@@ -41,18 +60,21 @@ function Admin() {
   const [busy, setBusy] = useState(false);
   const [inventory, setInventory] = useState<Inventory[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<Stats>({});
-  const [tab, setTab] = useState("inventory");
+  const [tab, setTab] = useState<"inventory" | "clients" | "orders">("orders");
   const [tier, setTier] = useState("100");
   async function refresh(auth = token) {
-    const [s, i, c] = await Promise.all([
+    const [s, i, c, o] = await Promise.all([
       api<Stats>("/api/admin/stats", { token: auth }),
       api<Inventory[] | { inventory: Inventory[] }>("/api/admin/inventory", { token: auth }),
       api<Client[] | { clients: Client[] }>("/api/admin/clients", { token: auth }),
+      api<Order[] | { orders: Order[] }>("/api/admin/pending-orders", { token: auth }).catch(() => []),
     ]);
     setStats(s);
     setInventory(Array.isArray(i) ? i : i.inventory);
     setClients(Array.isArray(c) ? c : c.clients);
+    setOrders(Array.isArray(o) ? o : (o as { orders: Order[] })?.orders || []);
   }
   async function login(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -86,6 +108,42 @@ function Admin() {
       setBusy(false);
     }
   }
+  async function approveOrder(orderId: string) {
+    if (!window.confirm("تأكيد استلام التحويل وإصدار المفتاح للعميل فوراً؟")) return;
+    setBusy(true);
+    try {
+      const res = await api<{ success: boolean; message: string; clientKey: string }>(
+        `/api/admin/orders/${orderId}/approve`,
+        { method: "POST", token }
+      );
+      toast.success(res.message || "تم تفعيل الاشتراك وتعيين المفتاح");
+      await refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل اعتماد الطلب");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function rejectOrder(orderId: string) {
+    const reason = window.prompt("سبب الرفض (اختياري):", "لم يتم العثور على إشعار التحويل");
+    if (reason === null) return;
+    setBusy(true);
+    try {
+      await api(`/api/admin/orders/${orderId}/reject`, {
+        method: "POST",
+        data: { reason },
+        token,
+      });
+      toast.info("تم رفض الطلب");
+      await refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل رفض الطلب");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function add(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
@@ -246,6 +304,22 @@ function Admin() {
           <Button
             variant="ghost"
             role="tab"
+            aria-selected={tab === "orders"}
+            aria-controls="admin-data"
+            className={tab === "orders" ? "selected-tab" : ""}
+            onClick={() => setTab("orders")}
+          >
+            <Clock />
+            طلبات الانتظار
+            {orders.length > 0 && (
+              <span className="mr-1.5 px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-white font-bold">
+                {orders.length}
+              </span>
+            )}
+          </Button>
+          <Button
+            variant="ghost"
+            role="tab"
             aria-selected={tab === "inventory"}
             aria-controls="admin-data"
             className={tab === "inventory" ? "selected-tab" : ""}
@@ -284,12 +358,14 @@ function Admin() {
         className="table-scroll"
         id="admin-data"
         role="tabpanel"
-        aria-label={tab === "inventory" ? "المخزون" : "العملاء"}
+        aria-label={tab === "orders" ? "الطلبات" : tab === "inventory" ? "المخزون" : "العملاء"}
       >
         <table>
           <thead>
             <tr>
-              {(tab === "inventory"
+              {(tab === "orders"
+                ? ["رقم الطلب", "العميل", "الباقة والمبلغ", "وسيلة الدفع والبيانات", "الإجراءات"]
+                : tab === "inventory"
                 ? ["المفتاح", "الباقة", "الرصيد", "الحالة", "الإجراءات"]
                 : ["العميل", "المفتاح", "الحالة", "الإجراءات"]
               ).map((h) => (
@@ -298,7 +374,66 @@ function Admin() {
             </tr>
           </thead>
           <tbody>
-            {tab === "inventory"
+            {tab === "orders"
+              ? orders.map((o) => (
+                  <tr key={o.id}>
+                    <td data-label="رقم الطلب">
+                      <code dir="ltr" className="text-xs font-mono">{o.id}</code>
+                    </td>
+                    <td data-label="العميل">
+                      <div className="font-bold">{o.customerName || o.senderName || "—"}</div>
+                      <div className="text-[11px] text-muted-foreground font-mono" dir="ltr">
+                        {o.customerEmail || o.senderPhone}
+                      </div>
+                    </td>
+                    <td data-label="الباقة والمبلغ">
+                      <strong>${o.tier} USD</strong>
+                      {o.amountEGP && (
+                        <div className="text-[11px] text-muted-foreground font-mono">
+                          {o.amountEGP.toLocaleString()} ج.م
+                        </div>
+                      )}
+                    </td>
+                    <td data-label="وسيلة الدفع والبيانات">
+                      <span className="state-label state-active">
+                        {o.type === "vodafone_cash"
+                          ? "فودافون كاش"
+                          : o.type === "bybit_crypto"
+                          ? "تحويل Bybit"
+                          : "انستاباي / يدوي"}
+                      </span>
+                      {(o.transactionRef || o.txID) && (
+                        <div className="text-[11px] font-mono mt-1 text-muted-foreground" dir="ltr">
+                          Ref: {(o.transactionRef || o.txID)?.slice(0, 18)}...
+                        </div>
+                      )}
+                    </td>
+                    <td data-label="الإجراءات" className="table-actions">
+                      <div className="flex gap-2">
+                        <Button
+                          variant="premium"
+                          size="sm"
+                          onClick={() => approveOrder(o.id)}
+                          disabled={busy}
+                        >
+                          <CheckCircle size={14} />
+                          موافقة وتعيين مفتاح
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => rejectOrder(o.id)}
+                          disabled={busy}
+                          className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                        >
+                          <XCircle size={14} />
+                          رفض
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              : tab === "inventory"
               ? inventory.map((item) => (
                   <tr key={item.id}>
                     <td data-label="المفتاح">
@@ -370,7 +505,7 @@ function Admin() {
                 ))}
           </tbody>
         </table>
-        {(tab === "inventory" ? inventory : clients).length === 0 && (
+        {(tab === "orders" ? orders : tab === "inventory" ? inventory : clients).length === 0 && (
           <p className="empty-table">لا توجد بيانات حتى الآن</p>
         )}
       </div>

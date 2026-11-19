@@ -1,9 +1,11 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { Menu, X, Send, ShieldCheck, ArrowUpLeft } from "lucide-react";
+import { Menu, X, Send, ShieldCheck, ArrowUpLeft, LogIn, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import robot from "@/assets/subsc-robot-original-transparent.png.asset.json";
 import type { Currency } from "@/lib/subsc";
+import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
+
 const CurrencyContext = createContext<{ currency: Currency; setCurrency: (c: Currency) => void }>({
   currency: "USD",
   setCurrency: () => {},
@@ -34,9 +36,12 @@ export function SubscShell({ children }: { children: ReactNode }) {
               <Link to="/guide" onClick={() => setMenu(false)}>
                 دليل الربط
               </Link>
-              <Link to="/admin" onClick={() => setMenu(false)}>
-                لوحة الإدارة
-              </Link>
+              <SignedIn>
+                <Link to="/dashboard" onClick={() => setMenu(false)} className="nav-dashboard-link">
+                  <Sparkles size={14} className="inline ml-1 text-primary" />
+                  حسابي ومفاتيحي
+                </Link>
+              </SignedIn>
             </nav>
             <div className="header-actions">
               <div className="currency-toggle" dir="ltr">
@@ -53,6 +58,30 @@ export function SubscShell({ children }: { children: ReactNode }) {
                   </Button>
                 ))}
               </div>
+
+              {/* User Authentication Status */}
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <Button variant="outline" className="auth-login-btn">
+                    <LogIn size={15} />
+                    تسجيل الدخول
+                  </Button>
+                </SignInButton>
+              </SignedOut>
+
+              <SignedIn>
+                <div className="flex items-center gap-2" dir="ltr">
+                  <UserButton
+                    afterSignOutUrl="/"
+                    appearance={{
+                      elements: {
+                        avatarBox: "w-8 h-8 rounded-full ring-2 ring-primary/30"
+                      }
+                    }}
+                  />
+                </div>
+              </SignedIn>
+
               <Button variant="glass" className="telegram-button" asChild>
                 <a href="https://t.me/subscnow" target="_blank" rel="noreferrer">
                   <Send />

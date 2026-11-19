@@ -5,7 +5,8 @@ const fs = require('fs');
 const http = require('http');
 const { fork } = require('child_process');
 const crypto = require('crypto');
-const { readDB, writeDB, generateClientApiKey } = require('./lib/db');
+const { readDB, writeDB, generateClientApiKey, provisionUserSubscription } = require('./lib/db');
+const { BYBIT, createSha7nawyLink, checkSha7nawyStatus, verifyBybitDeposit } = require('./lib/payments');
 const { handleProxy } = require('./lib/proxy');
 
 const app = express();
@@ -289,6 +290,444 @@ app.post('/api/check-balance', async (req, res) => {
       daily_usage: usageData?.daily_usage || [],
       models: modelsData.data || []
     });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// -----------------------------------------------------------------
+// PAYMENT & USER SUBSCRIPTION GATEWAY
+// -----------------------------------------------------------------
+
+// Get Deposit & Payment Info (Addresses, EGP Rate, InstaPay)
+app.get('/api/payment/info', (req, res) => {
+  const db = readDB();
+  res.json({
+    success: true,
+    egpRate: db.settings.egpRate || 54,
+    instapay: db.settings.instapayInfo || {
+      name: 'SubscAPI Official',
+      username: 'subscapi@instapay',
+      phone: '01012345678'
+    },
+    bybitAddresses: BYBIT.depositAddresses
+  });
+});
+
+// Get Current User Subscription Status (via Clerk User ID or Email)
+app.get('/api/user/subscription', (req, res) => {
+  try {
+    const clerkUserId = req.headers['x-clerk-user-id'] || req.query.clerkUserId;
+    const email = req.headers['x-clerk-user-email'] || req.query.email;
+    const db = readDB();
+
+    if (!clerkUserId && !email) {
+      return res.json({ success: true, status: 'unauthenticated' });
+    }
+
+    if (!db.users) db.users = [];
+    if (!db.orders) db.orders = [];
+
+    let user = db.users.find(u => (clerkUserId && u.clerkUserId === clerkUserId) || (email && u.email === email));
+    
+    // Also look for pending orders
+    const pendingOrder = db.orders.find(o => 
+      ((clerkUserId && o.clerkUserId === clerkUserId) || (email && o.customerEmail === email)) &&
+      (o.status === 'pending_approval' || o.status === 'pending_payment')
+    );
+
+    if (!user || !user.subscription || user.subscription.status !== 'active') {
+      if (pendingOrder) {
+        return res.json({
+          success: true,
+          status: 'pending_approval',
+          pendingOrder: {
+            id: pendingOrder.id,
+            tier: pendingOrder.tier,
+            type: pendingOrder.type,
+            createdAt: pendingOrder.createdAt,
+            paymentUrl: pendingOrder.paymentUrl
+          }
+        });
+      }
+      return res.json({ success: true, status: 'none' });
+    }
+
+    // User is active, get live balance from clientKey
+    const clientRecord = db.clientKeys.find(c => c.clientKey === user.subscription.clientKey);
+    const balance = clientRecord ? clientRecord.remainingBalance : user.subscription.remainingBalance;
+    const total = clientRecord ? clientRecord.initialBalance : user.subscription.initialBalance;
+
+    res.json({
+      success: true,
+      status: 'active',
+      subscription: {
+        tier: user.subscription.tier,
+        clientKey: user.subscription.clientKey,
+        initialBalance: total,
+        remainingBalance: balance,
+        usedBalance: Number((total - balance).toFixed(4)),
+        percentageRemaining: total > 0 ? Number(((balance / total) * 100).toFixed(1)) : 100,
+        paidVia: user.subscription.paidVia,
+        activatedAt: user.subscription.activatedAt,
+        baseUrl: 'https://ai.subsc.tech/v1'
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 1. Create Vodafone Cash Payment Link (Sha7nawy Gateway v2)
+app.post('/api/payment/vodafone/create', async (req, res) => {
+  try {
+    const { tier, customerName, customerEmail, clerkUserId } = req.body;
+    const numTier = Number(tier) || 100;
+    const db = readDB();
+    const rate = db.settings.egpRate || 54;
+    const amountEGP = numTier * rate;
+
+    const orderId = `ORD-VF-${Date.now().toString(36)}-${crypto.randomBytes(3).toString('hex')}`;
+    const returnUrl = `https://ai.subsc.tech/dashboard?orderId=${orderId}&vfcash=1`;
+
+    const link = await createSha7nawyLink({
+      orderId,
+      amount: amountEGP,
+      customerName: customerName || 'عميل SubscAPI',
+      customerEmail: customerEmail || undefined,
+      description: `اشتراك SubscAPI - باقة ${numTier}$ للذكاء الاصطناعي`,
+      successUrl: returnUrl,
+      failUrl: returnUrl,
+      webhookUrl: `https://ai.subsc.tech/api/payment/webhook/sha7nawy`
+    });
+
+    if (!db.orders) db.orders = [];
+    db.orders.unshift({
+      id: orderId,
+      type: 'vodafone_cash',
+      tier: numTier,
+      amountUSD: numTier,
+      amountEGP: amountEGP,
+      customerName: customerName || 'عميل فودافون كاش',
+      customerEmail: customerEmail || '',
+      clerkUserId: clerkUserId || '',
+      status: 'pending_payment',
+      paymentUrl: link.paymentUrl,
+      createdAt: new Date().toISOString()
+    });
+    writeDB(db);
+
+    res.json({
+      success: true,
+      orderId,
+      amountEGP,
+      paymentUrl: link.paymentUrl
+    });
+  } catch (err) {
+    console.error('Vodafone Cash link error:', err);
+    res.status(500).json({ success: false, error: err.message || 'فشل توليد رابط دفع فودافون كاش' });
+  }
+});
+
+// Check Vodafone Cash Payment Status
+app.get('/api/payment/vodafone/check/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const db = readDB();
+    if (!db.orders) db.orders = [];
+
+    const order = db.orders.find(o => o.id === orderId);
+    if (!order) {
+      return res.status(404).json({ success: false, error: 'الطلب غير موجود' });
+    }
+
+    if (order.status === 'completed') {
+      const user = db.users.find(u => u.clerkUserId === order.clerkUserId || (order.customerEmail && u.email === order.customerEmail));
+      return res.json({ success: true, status: 'completed', subscription: user?.subscription });
+    }
+
+    // Query Sha7nawy
+    const statusData = await checkSha7nawyStatus(orderId);
+    if (statusData.paid) {
+      // Auto-Provision Key!
+      const provisionResult = provisionUserSubscription(db, {
+        clerkUserId: order.clerkUserId,
+        customerName: order.customerName,
+        customerEmail: order.customerEmail,
+        tier: order.tier,
+        paymentMethod: 'vodafone_cash',
+        paymentRef: statusData.reference || orderId,
+        amountPaid: order.amountEGP
+      });
+
+      order.status = 'completed';
+      order.completedAt = new Date().toISOString();
+      order.paymentReference = statusData.reference;
+      writeDB(db);
+
+      return res.json({
+        success: true,
+        status: 'completed',
+        clientKey: provisionResult.clientKey,
+        baseUrl: 'https://ai.subsc.tech/v1'
+      });
+    }
+
+    res.json({
+      success: true,
+      status: order.status,
+      message: 'في انتظار تأكيد السحب من فودافون كاش'
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Sha7nawy Webhook
+app.post('/api/payment/webhook/sha7nawy', (req, res) => {
+  try {
+    const body = req.body || {};
+    const data = body.data || {};
+    const orderId = data.order_id;
+    const status = data.status;
+
+    if (orderId && (status === 'completed' || status === 'paid')) {
+      const db = readDB();
+      if (!db.orders) db.orders = [];
+      const order = db.orders.find(o => o.id === orderId);
+      if (order && order.status !== 'completed') {
+        provisionUserSubscription(db, {
+          clerkUserId: order.clerkUserId,
+          customerName: order.customerName,
+          customerEmail: order.customerEmail,
+          tier: order.tier,
+          paymentMethod: 'vodafone_cash',
+          paymentRef: data.reference || data.transaction_id || orderId,
+          amountPaid: order.amountEGP
+        });
+        order.status = 'completed';
+        order.completedAt = new Date().toISOString();
+        writeDB(db);
+      }
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Webhook error:', err);
+    res.json({ success: false });
+  }
+});
+
+// 2. Bybit USDT Deposit Verification
+app.post('/api/payment/bybit/verify', async (req, res) => {
+  try {
+    const { txId, tier, clerkUserId, customerName, customerEmail } = req.body;
+    const numTier = Number(tier) || 100;
+
+    if (!txId) {
+      return res.status(400).json({ success: false, error: 'يرجى إدخال معرف المعاملة (TxID / Hash)' });
+    }
+
+    const cleanTxId = txId.trim();
+    const db = readDB();
+    if (!db.orders) db.orders = [];
+
+    // Check if this txID was already used
+    const existing = db.orders.find(o => o.txID && o.txID.toLowerCase() === cleanTxId.toLowerCase() && o.status === 'completed');
+    if (existing) {
+      return res.status(400).json({ success: false, error: 'معرف المعاملة هذا تم استخدامه مسبقاً وتفعيله.' });
+    }
+
+    // Verify on Bybit API
+    const verifyResult = await verifyBybitDeposit({
+      txId: cleanTxId,
+      expectedMinAmount: numTier,
+      expectedCoin: 'USDT'
+    });
+
+    if (!verifyResult.valid) {
+      return res.status(400).json({ success: false, error: verifyResult.error });
+    }
+
+    // Verification passed! Provision key immediately
+    const provisionResult = provisionUserSubscription(db, {
+      clerkUserId,
+      customerName,
+      customerEmail,
+      tier: numTier,
+      paymentMethod: 'bybit_crypto',
+      paymentRef: verifyResult.txID,
+      amountPaid: verifyResult.amount
+    });
+
+    const orderId = `ORD-BYBIT-${Date.now().toString(36)}`;
+    db.orders.unshift({
+      id: orderId,
+      type: 'bybit_crypto',
+      tier: numTier,
+      amountUSD: verifyResult.amount,
+      txID: verifyResult.txID,
+      chain: verifyResult.chain,
+      customerName: customerName || 'عميل Bybit',
+      customerEmail: customerEmail || '',
+      clerkUserId: clerkUserId || '',
+      status: 'completed',
+      createdAt: new Date().toISOString(),
+      completedAt: new Date().toISOString()
+    });
+
+    writeDB(db);
+
+    res.json({
+      success: true,
+      status: 'active',
+      clientKey: provisionResult.clientKey,
+      baseUrl: 'https://ai.subsc.tech/v1',
+      message: 'تم التحقق من تحويل Bybit بنجاح وتم تفعيل اشتراكك وإصدار المفتاح! 🚀'
+    });
+  } catch (err) {
+    console.error('Bybit verify error:', err);
+    res.status(500).json({ success: false, error: err.message || 'حدث خطأ أثناء التحقق من Bybit' });
+  }
+});
+
+// 3. InstaPay / Manual Transfer Submission
+app.post('/api/payment/instapay/submit', (req, res) => {
+  try {
+    const { tier, clerkUserId, customerName, customerEmail, senderName, senderPhone, transactionRef, notes } = req.body;
+    const numTier = Number(tier) || 100;
+
+    if (!senderName && !transactionRef && !senderPhone) {
+      return res.status(400).json({ success: false, error: 'يرجى إدخال اسم المحول أو الرقم المرجعي للتحويل' });
+    }
+
+    const db = readDB();
+    if (!db.orders) db.orders = [];
+    if (!db.users) db.users = [];
+
+    const orderId = `ORD-INSTA-${Date.now().toString(36)}-${crypto.randomBytes(2).toString('hex')}`;
+    const rate = db.settings.egpRate || 54;
+    const amountEGP = numTier * rate;
+
+    const newOrder = {
+      id: orderId,
+      type: 'instapay_manual',
+      tier: numTier,
+      amountUSD: numTier,
+      amountEGP: amountEGP,
+      customerName: customerName || senderName || 'عميل انستاباي',
+      customerEmail: customerEmail || '',
+      clerkUserId: clerkUserId || '',
+      senderName: senderName || '',
+      senderPhone: senderPhone || '',
+      transactionRef: transactionRef || '',
+      notes: notes || '',
+      status: 'pending_approval',
+      createdAt: new Date().toISOString()
+    };
+
+    db.orders.unshift(newOrder);
+
+    // Update user state to pending_approval
+    let user = db.users.find(u => (clerkUserId && u.clerkUserId === clerkUserId) || (customerEmail && u.email === customerEmail));
+    if (!user) {
+      user = {
+        id: 'usr_' + crypto.randomBytes(6).toString('hex'),
+        clerkUserId: clerkUserId || '',
+        email: customerEmail || '',
+        name: customerName || senderName,
+        createdAt: new Date().toISOString()
+      };
+      db.users.push(user);
+    }
+    user.subscription = {
+      status: 'pending_approval',
+      tier: numTier,
+      orderId: orderId,
+      requestedAt: new Date().toISOString()
+    };
+
+    writeDB(db);
+
+    res.json({
+      success: true,
+      status: 'pending_approval',
+      orderId,
+      message: 'تم استلام بيانات التحويل بنجاح! طلبك قيد المراجعة والانتظار من الإدارة وسيتم تفعيل حسابك فور تأكيد التحويل.'
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin Pending Orders
+app.get('/api/admin/pending-orders', requireAdmin, (req, res) => {
+  const db = readDB();
+  if (!db.orders) db.orders = [];
+  const pending = db.orders.filter(o => o.status === 'pending_approval');
+  res.json({ success: true, orders: pending });
+});
+
+// Admin Approve Order
+app.post('/api/admin/orders/:orderId/approve', requireAdmin, (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const db = readDB();
+    if (!db.orders) db.orders = [];
+
+    const order = db.orders.find(o => o.id === orderId);
+    if (!order) {
+      return res.status(404).json({ success: false, error: 'الطلب غير موجود' });
+    }
+
+    const provisionResult = provisionUserSubscription(db, {
+      clerkUserId: order.clerkUserId,
+      customerName: order.customerName || order.senderName,
+      customerEmail: order.customerEmail,
+      tier: order.tier,
+      paymentMethod: order.type || 'instapay_manual',
+      paymentRef: order.transactionRef || order.id,
+      amountPaid: order.amountEGP || order.tier
+    });
+
+    order.status = 'completed';
+    order.approvedAt = new Date().toISOString();
+    writeDB(db);
+
+    res.json({
+      success: true,
+      message: 'تمت الموافقة وتفعيل الاشتراك وإصدار المفتاح للعميل بنجاح! 🚀',
+      clientKey: provisionResult.clientKey
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin Reject Order
+app.post('/api/admin/orders/:orderId/reject', requireAdmin, (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { reason } = req.body;
+    const db = readDB();
+    if (!db.orders) db.orders = [];
+
+    const order = db.orders.find(o => o.id === orderId);
+    if (!order) {
+      return res.status(404).json({ success: false, error: 'الطلب غير موجود' });
+    }
+
+    order.status = 'rejected';
+    order.rejectReason = reason || 'لم يتم تأكيد وصول التحويل';
+    order.rejectedAt = new Date().toISOString();
+
+    // Reset user subscription status if pending
+    const user = db.users.find(u => u.clerkUserId === order.clerkUserId || (order.customerEmail && u.email === order.customerEmail));
+    if (user && user.subscription?.status === 'pending_approval') {
+      user.subscription = { status: 'none', message: order.rejectReason };
+    }
+
+    writeDB(db);
+    res.json({ success: true, message: 'تم رفض الطلب' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
