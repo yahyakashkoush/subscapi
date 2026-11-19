@@ -2326,6 +2326,14 @@ textarea[dir="ltr"] {
 /* ------------------------------------------------------------- */
 /* HIDE CLERK DEV-MODE & WATERMARKS (Development mode & Secured by)*/
 /* ------------------------------------------------------------- */
+.cl-userButtonPopoverFooter,
+.cl-userButtonPopoverFooter__help,
+.cl-userButtonPopoverFooter__terms,
+.cl-userButtonPopoverFooter__privacy,
+div[class*="userButtonPopoverFooter"],
+div[class*="UserButtonPopoverFooter"],
+div[class*="popoverFooter"],
+div[class*="PopoverFooter"],
 .cl-internal-1x6p19r,
 .cl-internal-b3fm6y,
 .cl-development-mode,
@@ -2337,27 +2345,49 @@ textarea[dir="ltr"] {
 .cl-poweredByClerk,
 .cl-branding,
 .cl-attribution,
+.cl-watermark,
 .cl-footer,
 [data-localization-key="developmentMode"],
 [data-localization-key="badge__developmentMode"],
+[data-localization-key="securedByClerk"],
 [data-localization-key="footerAction__signIn"],
 [data-localization-key="footerAction__signUp"],
 div[class*="devMode"],
 span[class*="devMode"],
+div[class*="developmentMode"],
+span[class*="developmentMode"],
 div[class*="development-mode"],
 span[class*="development-mode"],
 div[class*="poweredBy"],
 span[class*="poweredBy"],
+div[class*="watermark"],
+span[class*="watermark"],
 div:has(> .cl-devModeTag),
 div:has(> .cl-badge),
 div:has(> [data-localization-key="developmentMode"]),
+div:has(> [data-localization-key="securedByClerk"]),
+.cl-userButtonPopoverCard > div:last-child:has(svg),
+.cl-userButtonPopoverCard > div:last-child:has(a),
+.cl-userButtonPopoverCard > div:last-child:has(p),
 .cl-internal-1dauvpw,
 .cl-internal-1hp5nqm {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
   height: 0 !important;
-  width: 0 !important;
+  max-height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
   pointer-events: none !important;
   overflow: hidden !important;
+}
+
+.cl-userButtonPopoverMain {
+  border-bottom: none !important;
+}
+
+.cl-userButtonPopoverFooter {
+  border-top: none !important;
 }

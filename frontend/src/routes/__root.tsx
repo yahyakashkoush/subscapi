@@ -14,7 +14,13 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SubscShell } from "@/components/subsc-shell";
 import { Toaster } from "sonner";
+import { ClerkProvider } from "@clerk/react";
 import { AuthProvider } from "@/lib/auth";
+
+const CLERK_PUBLISHABLE_KEY =
+  (typeof process !== "undefined" && process.env?.VITE_CLERK_PUBLISHABLE_KEY) ||
+  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ||
+  "pk_test_dW5jb21tb24tY2F0ZmlzaC05Mjg3LmNsZXJrLmFjY291bnRzLmRldiQ";
 
 function NotFoundComponent() {
   return (
@@ -133,14 +139,36 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClient}>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <SubscShell>
-          <Outlet />
-        </SubscShell>
-        <Toaster theme="light" position="bottom-left" richColors dir="rtl" />
-      </QueryClientProvider>
-    </AuthProvider>
+    <ClerkProvider
+      publishableKey={CLERK_PUBLISHABLE_KEY}
+      afterSignOutUrl="/"
+      appearance={{
+        layout: {
+          unsafe_disableDevelopmentModeWarnings: true,
+          logoPlacement: "none",
+        },
+        elements: {
+          footer: "hidden",
+          footerAction: "hidden",
+          userButtonPopoverFooter: "hidden",
+          userButtonPopoverFooter__help: "hidden",
+          userButtonPopoverFooter__terms: "hidden",
+          userButtonPopoverFooter__privacy: "hidden",
+          devModeTag: "hidden",
+          badge: "hidden",
+          developmentModeBadge: "hidden",
+        },
+      }}
+    >
+      <AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <SubscShell>
+            <Outlet />
+          </SubscShell>
+          <Toaster theme="light" position="bottom-left" richColors dir="rtl" />
+        </QueryClientProvider>
+      </AuthProvider>
+    </ClerkProvider>
   );
 }
