@@ -966,6 +966,20 @@
   ],
   "clientKeys": [
     {
+      "id": "cli_test_100u",
+      "clientKey": "sk-subsc-100u-d871f23349bf84dcf231737e1401d8fc",
+      "tier": 100,
+      "model": "gpt-6.1-sol",
+      "status": "active",
+      "initialBalance": 100,
+      "remainingBalance": 99.99,
+      "customerName": "تجربة سريعة",
+      "createdAt": "2026-11-19T16:33:47.535Z",
+      "totalRequests": 4,
+      "totalTokens": 5798,
+      "lastUsedAt": "2026-11-19T16:57:42.140Z"
+    },
+    {
       "id": "cli_d4921ce9fd89",
       "clientKey": "sk-subsc-500u-16e06cef4a982b8ff9333e5a87a33725",
       "inventoryKeyId": "inv_cd71b7ffd900",
