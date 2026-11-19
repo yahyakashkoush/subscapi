@@ -21,7 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { api, metadata, packages } from "@/lib/subsc";
 import { CopyBox, Checkout } from "@/components/subsc-controls";
-import { useUser, SignInButton } from "@clerk/clerk-react";
+import { useUser, SignInButton } from "@clerk/react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
@@ -35,6 +35,7 @@ export const Route = createFileRoute("/dashboard")({
 
 type SubscriptionData = {
   tier: number;
+  model?: string;
   clientKey: string;
   initialBalance: number;
   remainingBalance: number;
@@ -208,9 +209,16 @@ function Dashboard() {
           <div className="p-6 rounded-2xl bg-card border border-primary/30 shadow-md space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-4">
               <div>
-                <span className="text-xs font-bold text-primary uppercase tracking-wider">
-                  باقة {subData.tier}$ - SubscAPI Key
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-primary uppercase tracking-wider">
+                    باقة {subData.tier}$ - SubscAPI Key
+                  </span>
+                  {subData.model && (
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                      النموذج: {subData.model}
+                    </span>
+                  )}
+                </div>
                 <h3 className="text-xl font-bold mt-0.5">مفتاح الذكاء الاصطناعي المباشر</h3>
               </div>
               <div className="flex items-center gap-2">

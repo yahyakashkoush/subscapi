@@ -4,7 +4,7 @@ import { Menu, X, Send, ShieldCheck, ArrowUpLeft, LogIn, Sparkles } from "lucide
 import { Button } from "@/components/ui/button";
 import robot from "@/assets/subsc-robot-original-transparent.png.asset.json";
 import type { Currency } from "@/lib/subsc";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
+import { useUser, SignInButton, UserButton } from "@clerk/react";
 
 const CurrencyContext = createContext<{ currency: Currency; setCurrency: (c: Currency) => void }>({
   currency: "USD",
@@ -14,6 +14,7 @@ export const useCurrency = () => useContext(CurrencyContext);
 export function SubscShell({ children }: { children: ReactNode }) {
   const [currency, setCurrency] = useState<Currency>("USD");
   const [menu, setMenu] = useState(false);
+  const { isSignedIn } = useUser();
   return (
     <CurrencyContext.Provider value={{ currency, setCurrency }}>
       <div className="site-shell" dir="rtl">
@@ -36,12 +37,12 @@ export function SubscShell({ children }: { children: ReactNode }) {
               <Link to="/guide" onClick={() => setMenu(false)}>
                 دليل الربط
               </Link>
-              <SignedIn>
+              {isSignedIn && (
                 <Link to="/dashboard" onClick={() => setMenu(false)} className="nav-dashboard-link">
                   <Sparkles size={14} className="inline ml-1 text-primary" />
                   حسابي ومفاتيحي
                 </Link>
-              </SignedIn>
+              )}
             </nav>
             <div className="header-actions">
               <div className="currency-toggle" dir="ltr">
@@ -60,16 +61,14 @@ export function SubscShell({ children }: { children: ReactNode }) {
               </div>
 
               {/* User Authentication Status */}
-              <SignedOut>
+              {!isSignedIn ? (
                 <SignInButton mode="modal">
                   <Button variant="outline" className="auth-login-btn">
                     <LogIn size={15} />
                     تسجيل الدخول
                   </Button>
                 </SignInButton>
-              </SignedOut>
-
-              <SignedIn>
+              ) : (
                 <div className="flex items-center gap-2" dir="ltr">
                   <UserButton
                     afterSignOutUrl="/"
@@ -80,7 +79,7 @@ export function SubscShell({ children }: { children: ReactNode }) {
                     }}
                   />
                 </div>
-              </SignedIn>
+              )}
 
               <Button variant="glass" className="telegram-button" asChild>
                 <a href="https://t.me/subscnow" target="_blank" rel="noreferrer">

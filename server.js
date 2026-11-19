@@ -37,13 +37,16 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Admin authentication middleware
 function requireAdmin(req, res, next) {
   const token = req.headers['x-admin-token'] || req.query.admin_token;
+  const userEmail = (req.headers['x-clerk-user-email'] || req.query.clerkEmail || '').trim().toLowerCase();
   const db = readDB();
   const validToken = db.settings.adminPassword || 'admin';
+  const adminEmails = (db.settings.adminEmails || ['yahyaemad999@gmail.com']).map(e => e.toLowerCase());
 
-  if (!token || token !== validToken) {
-    return res.status(401).json({ success: false, error: 'غير مصرح (Unauthorized admin access)' });
+  if ((userEmail && adminEmails.includes(userEmail)) || (token && (token === validToken || adminEmails.includes(token.toLowerCase())))) {
+    return next();
   }
-  next();
+
+  return res.status(401).json({ success: false, error: 'غير مصرح لك بدخول لوحة الإدارة. مخصص فقط لـ yahyaemad999@gmail.com' });
 }
 
 // -----------------------------------------------------------------
@@ -54,44 +57,105 @@ function requireAdmin(req, res, next) {
 app.get('/api/packages', (req, res) => {
   const db = readDB();
   
-  // Calculate inventory counts per tier
-  const stockCounts = { 100: 0, 200: 0, 500: 0 };
-  db.inventory.forEach(item => {
+  // Calculate inventory counts per tier and per model
+  const stockCounts = {};
+  const modelStockCounts = {};
+
+  (db.inventory || []).forEach(item => {
     if (item.status === 'available') {
-      stockCounts[item.tier] = (stockCounts[item.tier] || 0) + 1;
+      const tierKey = item.tier;
+      stockCounts[tierKey] = (stockCounts[tierKey] || 0) + 1;
+
+      const mKey = `${item.tier}_${(item.model || '').toLowerCase().trim()}`;
+      modelStockCounts[mKey] = (modelStockCounts[mKey] || 0) + 1;
     }
   });
 
-  const packagesWithStock = [
+  const packagesList = (db.packages && db.packages.length > 0) ? db.packages : [
     {
-      id: 'starter',
+      id: 'pkg_50',
+      tier: 50,
+      name: 'باقة الانطلاق 50$',
+      nameEn: 'Starter 50$',
+      duration: '7 أيام (7D)',
+      badge: 'أسرع تفعيل',
+      amount: 50,
+      priceUSD: 50,
+      priceEGP: 2700,
+      description: 'رصيد 50$ كامل مخصص للأدوات وتطوير المشاريع الصغيرة والسريعة.',
+      models: ['GPT ASTRA', 'gpt-6.1-sol'],
+      features: [
+        'رصيد استخدام حقيقي بقيمة 50 دولار',
+        'صلاحية استخدام لمدة 7 أيام كاملة',
+        'اختيار النموذج المناسب (ASTRA أو gpt-6.1-sol)',
+        'متوافق مع Cursor وWindsurf وCline وRoo Code',
+        'استجابة فورية بدون تقطيع وسرعة فائقة'
+      ]
+    },
+    {
+      id: 'pkg_100',
       tier: 100,
-      stockCount: stockCounts[100] || 0,
-      stock: stockCounts[100] || 0,
-      availableStock: stockCounts[100] || 0
+      name: 'باقة المحترفين 100$',
+      nameEn: 'Pro 100$',
+      duration: '30 يوم (30D)',
+      badge: 'الأكثر طلباً ⭐',
+      amount: 100,
+      priceUSD: 100,
+      priceEGP: 5400,
+      description: 'رصيد 100$ كامل لدعم إنجاز المشروعات البرمجية والعمل اليومي المستمر.',
+      models: ['GPT ASTRA', 'gpt-6.1-sol'],
+      features: [
+        'رصيد استخدام حقيقي بقيمة 100 دولار',
+        'صلاحية استخدام لمدة 30 يوماً',
+        'اختيار النموذج المناسب (ASTRA أو gpt-6.1-sol)',
+        'سقف استخدام مفتوح ومعدل استدعاءات سريع',
+        'دعم كامل لجميع أدوات التطوير ومكتبات OpenAI'
+      ]
     },
     {
-      id: 'pro',
-      tier: 200,
-      stockCount: stockCounts[200] || 0,
-      stock: stockCounts[200] || 0,
-      availableStock: stockCounts[200] || 0
-    },
-    {
-      id: 'enterprise',
-      tier: 500,
-      stockCount: stockCounts[500] || 0,
-      stock: stockCounts[500] || 0,
-      availableStock: stockCounts[500] || 0
-    },
-    ...db.packages.map(pkg => ({
-      ...pkg,
-      stockCount: stockCounts[pkg.tier] || 0,
-      stock: stockCounts[pkg.tier] || 0,
-      availableStock: stockCounts[pkg.tier] || 0,
-      inStock: (stockCounts[pkg.tier] || 0) > 0
-    }))
+      id: 'pkg_250',
+      tier: 250,
+      name: 'باقة النخبة والفرق 250$',
+      nameEn: 'Elite 250$',
+      duration: '30 يوم (30D)',
+      badge: 'أعلى أداء وأكبر حصة',
+      amount: 250,
+      priceUSD: 250,
+      priceEGP: 13500,
+      description: 'رصيد 250$ كامل للمطورين المحترفين وفرق العمل والشركات الناشئة.',
+      models: ['GPT ASTRA', 'gpt-6.1-sol'],
+      features: [
+        'رصيد استخدام حقيقي ضخم بقيمة 250 دولار',
+        'صلاحية استخدام لمدة 30 يوماً',
+        'اختيار النموذج المناسب (ASTRA أو gpt-6.1-sol)',
+        'أولوية معالجة قصوى وسرعة استجابة فائقة',
+        'دعم فني مخصص على مدار الساعة'
+      ]
+    }
   ];
+
+  const packagesWithStock = packagesList.map(pkg => {
+    const tierStock = stockCounts[pkg.tier] || 0;
+    const modelDetails = (pkg.models || ['GPT ASTRA', 'gpt-6.1-sol']).map(m => {
+      const count = modelStockCounts[`${pkg.tier}_${m.toLowerCase().trim()}`] || 0;
+      return {
+        id: m,
+        name: m,
+        stockCount: count,
+        inStock: count > 0
+      };
+    });
+
+    return {
+      ...pkg,
+      amount: pkg.tier,
+      stockCount: tierStock,
+      stock: tierStock,
+      availableStock: tierStock,
+      inStock: tierStock > 0,
+      modelDetails: modelDetails
+    };
+  });
 
   res.json({
     success: true,
@@ -381,7 +445,7 @@ app.get('/api/user/subscription', (req, res) => {
 // 1. Create Vodafone Cash Payment Link (Sha7nawy Gateway v2)
 app.post('/api/payment/vodafone/create', async (req, res) => {
   try {
-    const { tier, customerName, customerEmail, clerkUserId } = req.body;
+    const { tier, model, customerName, customerEmail, clerkUserId } = req.body;
     const numTier = Number(tier) || 100;
     const db = readDB();
     const rate = db.settings.egpRate || 54;
@@ -395,7 +459,7 @@ app.post('/api/payment/vodafone/create', async (req, res) => {
       amount: amountEGP,
       customerName: customerName || 'عميل SubscAPI',
       customerEmail: customerEmail || undefined,
-      description: `اشتراك SubscAPI - باقة ${numTier}$ للذكاء الاصطناعي`,
+      description: `اشتراك SubscAPI - باقة ${numTier}$ (${model || 'AI'})`,
       successUrl: returnUrl,
       failUrl: returnUrl,
       webhookUrl: `https://ai.subsc.tech/api/payment/webhook/sha7nawy`
@@ -406,6 +470,7 @@ app.post('/api/payment/vodafone/create', async (req, res) => {
       id: orderId,
       type: 'vodafone_cash',
       tier: numTier,
+      model: model || 'gpt-6.1-sol',
       amountUSD: numTier,
       amountEGP: amountEGP,
       customerName: customerName || 'عميل فودافون كاش',
@@ -455,6 +520,7 @@ app.get('/api/payment/vodafone/check/:orderId', async (req, res) => {
         customerName: order.customerName,
         customerEmail: order.customerEmail,
         tier: order.tier,
+        model: order.model,
         paymentMethod: 'vodafone_cash',
         paymentRef: statusData.reference || orderId,
         amountPaid: order.amountEGP
@@ -520,7 +586,7 @@ app.post('/api/payment/webhook/sha7nawy', (req, res) => {
 // 2. Bybit USDT Deposit Verification
 app.post('/api/payment/bybit/verify', async (req, res) => {
   try {
-    const { txId, tier, clerkUserId, customerName, customerEmail } = req.body;
+    const { txId, tier, model, clerkUserId, customerName, customerEmail } = req.body;
     const numTier = Number(tier) || 100;
 
     if (!txId) {
@@ -554,6 +620,7 @@ app.post('/api/payment/bybit/verify', async (req, res) => {
       customerName,
       customerEmail,
       tier: numTier,
+      model: model || 'gpt-6.1-sol',
       paymentMethod: 'bybit_crypto',
       paymentRef: verifyResult.txID,
       amountPaid: verifyResult.amount
@@ -564,6 +631,7 @@ app.post('/api/payment/bybit/verify', async (req, res) => {
       id: orderId,
       type: 'bybit_crypto',
       tier: numTier,
+      model: model || 'gpt-6.1-sol',
       amountUSD: verifyResult.amount,
       txID: verifyResult.txID,
       chain: verifyResult.chain,
@@ -593,7 +661,7 @@ app.post('/api/payment/bybit/verify', async (req, res) => {
 // 3. InstaPay / Manual Transfer Submission
 app.post('/api/payment/instapay/submit', (req, res) => {
   try {
-    const { tier, clerkUserId, customerName, customerEmail, senderName, senderPhone, transactionRef, notes } = req.body;
+    const { tier, model, clerkUserId, customerName, customerEmail, senderName, senderPhone, transactionRef, notes } = req.body;
     const numTier = Number(tier) || 100;
 
     if (!senderName && !transactionRef && !senderPhone) {
@@ -612,6 +680,7 @@ app.post('/api/payment/instapay/submit', (req, res) => {
       id: orderId,
       type: 'instapay_manual',
       tier: numTier,
+      model: model || 'gpt-6.1-sol',
       amountUSD: numTier,
       amountEGP: amountEGP,
       customerName: customerName || senderName || 'عميل انستاباي',
@@ -642,6 +711,7 @@ app.post('/api/payment/instapay/submit', (req, res) => {
     user.subscription = {
       status: 'pending_approval',
       tier: numTier,
+      model: model || 'gpt-6.1-sol',
       orderId: orderId,
       requestedAt: new Date().toISOString()
     };
@@ -684,6 +754,7 @@ app.post('/api/admin/orders/:orderId/approve', requireAdmin, (req, res) => {
       customerName: order.customerName || order.senderName,
       customerEmail: order.customerEmail,
       tier: order.tier,
+      model: order.model,
       paymentMethod: order.type || 'instapay_manual',
       paymentRef: order.transactionRef || order.id,
       amountPaid: order.amountEGP || order.tier
@@ -803,7 +874,7 @@ app.get('/api/admin/inventory', requireAdmin, (req, res) => {
 // Add Key(s) to Inventory
 app.post('/api/admin/inventory', requireAdmin, async (req, res) => {
   try {
-    const { upstreamKeys, tier, balance, baseUrl, label } = req.body;
+    const { upstreamKeys, tier, balance, baseUrl, label, group, model, duration } = req.body;
     const db = readDB();
 
     if (!upstreamKeys || (typeof upstreamKeys !== 'string' && !Array.isArray(upstreamKeys))) {
@@ -818,6 +889,10 @@ app.post('/api/admin/inventory', requireAdmin, async (req, res) => {
     const initialBal = Number(balance) || numericTier;
     const targetUrl = baseUrl ? baseUrl.trim() : (db.settings.defaultUpstreamUrl || 'https://api.xingchiapi.com/v1');
 
+    const chosenModel = model || (label && label.includes('ASTRA') ? 'GPT ASTRA' : 'gpt-6.1-sol');
+    const chosenDuration = duration || (numericTier === 50 ? '7D' : '30D');
+    const chosenGroup = group || label || `${chosenModel} ${numericTier}$ ${chosenDuration}`;
+
     const added = [];
     for (const key of keyList) {
       const newInvItem = {
@@ -825,13 +900,16 @@ app.post('/api/admin/inventory', requireAdmin, async (req, res) => {
         upstreamKey: key,
         key: key,
         tier: numericTier,
+        group: chosenGroup,
+        model: chosenModel,
+        duration: chosenDuration,
         initialBalance: initialBal,
         currentBalance: initialBal,
         balance: initialBal,
         currency: 'USD',
         baseUrl: targetUrl,
         status: 'available',
-        label: label || `مفتاح ${numericTier}$ - دفعة ${new Date().toLocaleDateString('ar-EG')}`,
+        label: chosenGroup,
         addedAt: new Date().toISOString(),
         lastChecked: new Date().toISOString(),
         assignedTo: null
@@ -981,6 +1059,55 @@ app.post('/api/admin/settings', requireAdmin, (req, res) => {
   if (egpRate) db.settings.egpRate = Number(egpRate);
   writeDB(db);
   res.json({ success: true, settings: db.settings });
+});
+
+// Package Management CRUD (Admin)
+app.get('/api/admin/packages', requireAdmin, (req, res) => {
+  const db = readDB();
+  res.json({ success: true, packages: db.packages || [] });
+});
+
+app.post('/api/admin/packages', requireAdmin, (req, res) => {
+  try {
+    const { id, tier, name, nameEn, duration, badge, priceUSD, priceEGP, description, models, features } = req.body;
+    const db = readDB();
+    if (!db.packages) db.packages = [];
+
+    const existingIdx = id ? db.packages.findIndex(p => p.id === id) : -1;
+    const pkgData = {
+      id: id || `pkg_${tier}_${Date.now().toString(36)}`,
+      tier: Number(tier) || 100,
+      name: name || `باقة ${tier}$`,
+      nameEn: nameEn || `${tier}$ Tier`,
+      duration: duration || '30 يوم',
+      badge: badge || '',
+      amount: Number(tier) || 100,
+      priceUSD: Number(priceUSD) || Number(tier) || 100,
+      priceEGP: Number(priceEGP) || (Number(tier) * (db.settings.egpRate || 54)),
+      description: description || '',
+      models: Array.isArray(models) ? models : (models ? String(models).split(',').map(m => m.trim()).filter(Boolean) : ['GPT ASTRA', 'gpt-6.1-sol']),
+      features: Array.isArray(features) ? features : (features ? String(features).split('\n').map(f => f.trim()).filter(Boolean) : [])
+    };
+
+    if (existingIdx !== -1) {
+      db.packages[existingIdx] = { ...db.packages[existingIdx], ...pkgData };
+    } else {
+      db.packages.push(pkgData);
+    }
+
+    writeDB(db);
+    res.json({ success: true, package: pkgData, packages: db.packages });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/admin/packages/:id', requireAdmin, (req, res) => {
+  const db = readDB();
+  if (!db.packages) db.packages = [];
+  db.packages = db.packages.filter(p => p.id !== req.params.id);
+  writeDB(db);
+  res.json({ success: true, packages: db.packages });
 });
 
 // -----------------------------------------------------------------

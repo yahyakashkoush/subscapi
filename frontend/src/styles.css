@@ -2322,3 +2322,42 @@ textarea[dir="ltr"] {
     font-size: 20px;
   }
 }
+
+/* ------------------------------------------------------------- */
+/* HIDE CLERK DEV-MODE & WATERMARKS (Development mode & Secured by)*/
+/* ------------------------------------------------------------- */
+.cl-internal-1x6p19r,
+.cl-internal-b3fm6y,
+.cl-development-mode,
+.cl-devModeTag,
+.cl-badge,
+.cl-footerAction,
+.cl-footerAction__signIn,
+.cl-footerAction__signUp,
+.cl-poweredByClerk,
+.cl-branding,
+.cl-attribution,
+.cl-footer,
+[data-localization-key="developmentMode"],
+[data-localization-key="badge__developmentMode"],
+[data-localization-key="footerAction__signIn"],
+[data-localization-key="footerAction__signUp"],
+div[class*="devMode"],
+span[class*="devMode"],
+div[class*="development-mode"],
+span[class*="development-mode"],
+div[class*="poweredBy"],
+span[class*="poweredBy"],
+div:has(> .cl-devModeTag),
+div:has(> .cl-badge),
+div:has(> [data-localization-key="developmentMode"]),
+.cl-internal-1dauvpw,
+.cl-internal-1hp5nqm {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  width: 0 !important;
+  pointer-events: none !important;
+  overflow: hidden !important;
+}

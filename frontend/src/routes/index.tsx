@@ -158,12 +158,12 @@ function Index() {
         </div>
         <div className="pricing-grid">
           {displayedPackages.map((pack, index) => {
-            const Icon = pack.amount === 100 ? Code2 : pack.amount === 200 ? Zap : Building2;
-            const isFeatured = pack.amount === 200;
+            const Icon = pack.amount === 50 ? Zap : pack.amount === 100 ? Code2 : Building2;
+            const isFeatured = pack.amount === 100;
             const isOutOfStock = stocks[pack.id] === 0;
             return (
               <article className={`price-card ${isFeatured ? "featured-card" : ""}`} key={pack.id}>
-                {isFeatured && <span className="popular-tag">الأكثر طلباً</span>}
+                {isFeatured && <span className="popular-tag">الأكثر طلباً ⭐</span>}
                 <div className="plan-top">
                   <span className={`plan-icon plan-icon-${index}`}>
                     <Icon size={23} />
@@ -177,12 +177,18 @@ function Index() {
                 <div className="plan-price">
                   <strong>{price(pack.amount, currency)}</strong>
                   <span>{currency === "USD" ? "$" : "ج.م"}</span>
-                  <small>دفعة واحدة</small>
+                  <small>دفعة واحدة · {pack.duration || "30 يوم"}</small>
                 </div>
                 <div className="quota-note">
                   <KeyRound size={14} />
                   رصيد استخدام كامل <b dir="ltr">${pack.amount}</b>
                 </div>
+
+                <div className="models-tag flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-primary/5 border border-primary/15 text-[11px] font-mono text-primary my-1">
+                  <span>النماذج:</span>
+                  <b>{(pack.models || ["GPT ASTRA", "gpt-6.1-sol"]).join(" | ")}</b>
+                </div>
+
                 <div className="card-divider" />
                 <ul>
                   {pack.features.map((feature) => (
@@ -205,7 +211,7 @@ function Index() {
                   <span className={isOutOfStock ? "stock-dot" : "status-dot"} />
                   {isOutOfStock
                     ? "نفدت الحصة حالياً — انتظر توفير كميات جديدة"
-                    : "تفعيل فوري وتسليم مباشر للمفتاح ⚡"}
+                    : `تفعيل فوري وتسليم مباشر للمفتاح ⚡ ${stocks[pack.id] ? `(${stocks[pack.id]} متاح)` : ""}`}
                 </div>
               </article>
             );

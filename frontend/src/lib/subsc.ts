@@ -1,46 +1,75 @@
 export const EGP_RATE = 54;
 export type Currency = "USD" | "EGP";
-export const packages = [
+
+export type PackageItem = {
+  id: string;
+  name: string;
+  english: string;
+  amount: number;
+  tier: number;
+  duration?: string;
+  badge?: string;
+  description: string;
+  models?: string[];
+  modelDetails?: Array<{ id: string; name: string; inStock: boolean; stockCount: number }>;
+  features: string[];
+  priceUSD?: number;
+  priceEGP?: number;
+};
+
+export const packages: PackageItem[] = [
   {
-    id: "starter",
-    name: "باقة المطورين",
-    english: "STARTER",
+    id: "pkg_50",
+    tier: 50,
+    amount: 50,
+    name: "باقة الانطلاق 50$",
+    english: "STARTER 50$",
+    duration: "صلاحية 7 أيام",
+    badge: "تفعيل فوري",
+    description: "رصيد 50$ كامل مخصص للأدوات وتطوير المشاريع السريعة.",
+    models: ["GPT ASTRA", "gpt-6.1-sol"],
+    features: [
+      "رصيد استخدام حقيقي بقيمة 50 دولار",
+      "صلاحية استخدام لمدة 7 أيام كاملة",
+      "اختيار النموذج المناسب (ASTRA أو gpt-6.1-sol)",
+      "متوافق مع Cursor وWindsurf وCline وRoo Code",
+      "استجابة فورية وسرعة فائقة بدون انقطاع",
+    ],
+  },
+  {
+    id: "pkg_100",
+    tier: 100,
     amount: 100,
-    icon: "code",
-    description: "بداية قوية لأفكارك ومشاريعك",
+    name: "باقة المحترفين 100$",
+    english: "PRO 100$",
+    duration: "صلاحية 30 يوم",
+    badge: "الأكثر طلباً ⭐",
+    description: "رصيد 100$ كامل لدعم إنجاز المشروعات البرمجية والعمل اليومي المستمر.",
+    models: ["GPT ASTRA", "gpt-6.1-sol"],
     features: [
-      "رصيد كامل بقيمة 100 دولار",
-      "جميع نماذج الذكاء الاصطناعي",
-      "متوافق مع Cursor و Cline",
-      "مفتاح خاص وآمن لمشروعك",
+      "رصيد استخدام حقيقي بقيمة 100 دولار",
+      "صلاحية استخدام لمدة 30 يوماً",
+      "اختيار النموذج المناسب (ASTRA أو gpt-6.1-sol)",
+      "سقف استخدام مفتوح ومعدل استدعاءات سريع",
+      "دعم كامل لجميع أدوات التطوير ومكتبات OpenAI",
     ],
   },
   {
-    id: "pro",
-    name: "باقة المحترفين",
-    english: "PRO DEVELOPER",
-    amount: 200,
-    icon: "zap",
-    description: "قوة أكبر. إنتاجية بلا حدود.",
+    id: "pkg_250",
+    tier: 250,
+    amount: 250,
+    name: "باقة النخبة 250$",
+    english: "ELITE 250$",
+    duration: "صلاحية 30 يوم",
+    badge: "أعلى أداء وأكبر حصة",
+    description: "رصيد 250$ كامل للمطورين المحترفين وفرق العمل والشركات.",
+    models: ["GPT ASTRA", "gpt-6.1-sol"],
     features: [
-      "رصيد كامل بقيمة 200 دولار",
-      "جميع مميزات باقة المطورين",
-      "مثالي لوكلاء البرمجة الذكية",
-      "أولوية في الدعم الفني",
-    ],
-  },
-  {
-    id: "enterprise",
-    name: "باقة الشركات",
-    english: "ENTERPRISE",
-    amount: 500,
-    icon: "building",
-    description: "للفرق الكبيرة والطموحات الأكبر",
-    features: [
-      "رصيد كامل بقيمة 500 دولار",
-      "جميع مميزات باقة المحترفين",
-      "تشغيل عدة وكلاء في وقت واحد",
-      "دعم مخصص لفرق العمل",
+      "رصيد استخدام حقيقي ضخم بقيمة 250 دولار",
+      "صلاحية استخدام لمدة 30 يوماً",
+      "اختيار النموذج المناسب (ASTRA أو gpt-6.1-sol)",
+      "أولوية معالجة قصوى وسرعة استجابة فائقة",
+      "دعم فني مخصص على مدار الساعة",
     ],
   },
 ];
@@ -56,7 +85,13 @@ export const apiBase =
   "https://ai.subsc.tech";
 export async function api<T>(
   path: string,
-  options: { method?: string; data?: unknown; token?: string } = {},
+  options: {
+    method?: string;
+    data?: unknown;
+    token?: string;
+    clerkEmail?: string;
+    headers?: Record<string, string>;
+  } = {},
 ): Promise<T> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
@@ -67,6 +102,8 @@ export async function api<T>(
       headers: {
         "Content-Type": "application/json",
         ...(options.token ? { "x-admin-token": options.token } : {}),
+        ...(options.clerkEmail ? { "x-clerk-user-email": options.clerkEmail } : {}),
+        ...(options.headers || {}),
       },
       ...(options.data ? { body: JSON.stringify(options.data) } : {}),
     });

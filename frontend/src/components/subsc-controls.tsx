@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { api, price, type packages } from "@/lib/subsc";
 import { useCurrency } from "./subsc-shell";
-import { useUser, SignInButton } from "@clerk/clerk-react";
+import { useUser, SignInButton } from "@clerk/react";
 
 export function CopyBox({ value, label }: { value: string; label?: string }) {
   const [copied, setCopied] = useState(false);
@@ -67,10 +67,17 @@ export function Checkout({
   const { currency } = useCurrency();
   const { isSignedIn, user } = useUser();
   const [method, setMethod] = useState<PaymentMethod>("vodafone");
+  const [selectedModel, setSelectedModel] = useState<string>("GPT ASTRA");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [delivery, setDelivery] = useState<{ clientKey: string; baseUrl: string } | null>(null);
   const [pendingOrder, setPendingOrder] = useState<{ id: string; message: string } | null>(null);
+
+  useEffect(() => {
+    if (selected?.models && selected.models.length > 0) {
+      setSelectedModel(selected.models[0]);
+    }
+  }, [selected]);
 
   // Vodafone Cash state
   const [vfLink, setVfLink] = useState<{ paymentUrl: string; orderId: string } | null>(null);
@@ -121,6 +128,7 @@ export function Checkout({
           method: "POST",
           data: {
             tier: selected.amount,
+            model: selectedModel,
             customerName: user?.fullName || user?.username || "عميل فودافون كاش",
             customerEmail: user?.primaryEmailAddress?.emailAddress,
             clerkUserId: user?.id,
@@ -185,6 +193,7 @@ export function Checkout({
         data: {
           txId: txId.trim(),
           tier: selected.amount,
+          model: selectedModel,
           clerkUserId: user?.id,
           customerName: user?.fullName || user?.username,
           customerEmail: user?.primaryEmailAddress?.emailAddress,
@@ -217,6 +226,7 @@ export function Checkout({
           method: "POST",
           data: {
             tier: selected.amount,
+            model: selectedModel,
             clerkUserId: user?.id,
             customerName: user?.fullName || user?.username || senderName,
             customerEmail: user?.primaryEmailAddress?.emailAddress,
@@ -362,6 +372,45 @@ export function Checkout({
                 <div className="text-xs text-muted-foreground" dir="ltr">
                   ≈ {egpAmount.toLocaleString()} EGP
                 </div>
+              </div>
+            </div>
+
+            {/* Model Selection (Choice of Model within the package) */}
+            <div className="p-3 rounded-xl bg-card border border-border space-y-2">
+              <div className="flex items-center justify-between text-xs font-semibold">
+                <span className="flex items-center gap-1.5 text-foreground">
+                  <Sparkles size={14} className="text-primary" />
+                  اختر النموذج المطلوب (AI Model):
+                </span>
+                <span className="text-[11px] text-muted-foreground font-mono">
+                  مفتاح حصري للنموذج المختار
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {(selected?.models || ["GPT ASTRA", "gpt-6.1-sol"]).map((model) => {
+                  const isChosen = selectedModel === model;
+                  const modelStock = selected?.modelDetails?.find((m) => m.name === model)?.stockCount;
+                  return (
+                    <button
+                      key={model}
+                      type="button"
+                      onClick={() => setSelectedModel(model)}
+                      className={`p-2.5 rounded-lg border text-right transition-all flex flex-col justify-between ${
+                        isChosen
+                          ? "border-primary bg-primary/10 text-primary font-bold ring-1 ring-primary/30"
+                          : "border-border hover:bg-accent text-muted-foreground"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span className="font-mono text-xs font-bold">{model}</span>
+                        {isChosen && <Check size={14} className="text-primary" />}
+                      </div>
+                      <span className="text-[10px] mt-1 text-muted-foreground font-sans">
+                        {modelStock !== undefined ? `متوفر في المخزن (${modelStock})` : "متوفر وجاهز للتفعيل ⚡"}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
