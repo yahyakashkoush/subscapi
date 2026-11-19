@@ -4,7 +4,7 @@
   "description": "SubscAPI Gateway & Subscription Platform",
   "main": "server.js",
   "scripts": {
-    "build": "cd frontend && npx pnpm install --trust-lockfile && NITRO_PRESET=node-server npx pnpm build && cd ..",
+    "build": "cd frontend && npx -y pnpm install --trust-lockfile && NITRO_PRESET=node-server npx -y pnpm build && cd ..",
     "start": "node server.js"
   },
   "dependencies": {
