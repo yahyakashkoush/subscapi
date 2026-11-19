@@ -47,7 +47,13 @@ export const packages = [
 export function price(amount: number, currency: Currency) {
   return (amount * (currency === "EGP" ? EGP_RATE : 1)).toLocaleString("en-US");
 }
-export const apiBase = import.meta.env["VITE_SUBSC_API_URL"] || "http://localhost:3000";
+export const apiBase =
+  (typeof window !== "undefined" &&
+    window.location.origin &&
+    !window.location.origin.includes("localhost") &&
+    window.location.origin) ||
+  import.meta.env["VITE_SUBSC_API_URL"] ||
+  "https://ai.subsc.tech";
 export async function api<T>(
   path: string,
   options: { method?: string; data?: unknown; token?: string } = {},

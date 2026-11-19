@@ -12,7 +12,7 @@ export const Route = createFileRoute("/guide")({
     ),
   component: Guide,
 });
-const endpoint = `${apiBase}/v1`;
+const endpoint = "https://ai.subsc.tech/v1";
 const guides = [
   {
     name: "Cursor / Windsurf",
@@ -131,11 +131,6 @@ function Guide() {
         </div>
         <CopyBox value={endpoint} label="Base URL" />
       </div>
-      {apiBase.includes("localhost") && (
-        <p className="service-note">
-          عنوان الخدمة الحالي محلي؛ يلزم ربط عنوان عام قبل الاستخدام الفعلي.
-        </p>
-      )}
       <Button variant="link" asChild>
         <a href="https://platform.openai.com/docs/api-reference" target="_blank" rel="noreferrer">
           مرجع OpenAI API

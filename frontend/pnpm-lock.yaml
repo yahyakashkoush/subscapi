@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@clerk/clerk-react':
-        specifier: ^5.24.1
-        version: 5.61.3(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        specifier: ^5.61.12
+        version: 5.61.12(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.9.2(@standard-schema/spec@1.1.0)(react-hook-form@7.92.0(@types/react@19.3.0)(react@19.3.1))(zod@3.25.76)
@@ -324,8 +324,8 @@ packages:
     resolution: {integrity: sha512-UjI/dKmwJwT9pOszJitq2G6EObZPnsZUfdCr92z2TlF3EZK9J3EdfOKUrCzHl6wFthbzwhzl1Soc/UIwxRiq6w==}
     engines: {node: '>=6.9.0'}
 
-  '@clerk/clerk-react@5.61.3':
-    resolution: {integrity: sha512-W21aNEeHtqh3xJLuW5g2ydben/1D5pSnxsl/kCnv0IY1zma7lO+aIJ7Br2bR4FKKkiu695mPnjtY+fvkQmCXBg==}
+  '@clerk/clerk-react@5.61.12':
+    resolution: {integrity: sha512-Skz6k7S/Bmmsc96/zIsd2EFBw6Iks5a2gA8uq+s3Ni6p4syP/DMJC2JGiDjX0vqf+BDTuIJJU48Vp07BvhNcAA==}
     engines: {node: '>=18.17.0'}
     deprecated: 'This package is no longer supported. Please use @clerk/react instead. See the upgrade guide for more info: https://clerk.com/docs/guides/development/upgrading/upgrade-guides/core-3'
     peerDependencies:
@@ -3725,7 +3725,7 @@ snapshots:
       '@babel/helper-string-parser': 7.29.14
       '@babel/helper-validator-identifier': 7.29.7
 
-  '@clerk/clerk-react@5.61.3(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+  '@clerk/clerk-react@5.61.12(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
       '@clerk/shared': 3.48.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react: 19.3.1

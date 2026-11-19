@@ -906,6 +906,48 @@ app.post('/api/admin/inventory/sync/:id', requireAdmin, async (req, res) => {
   }
 });
 
+// Sync All Inventory Keys Live
+app.post('/api/admin/inventory/sync-all', requireAdmin, async (req, res) => {
+  try {
+    const db = readDB();
+    const results = [];
+    for (const item of db.inventory) {
+      try {
+        const target = (item.baseUrl || db.settings.defaultUpstreamUrl || 'https://api.xingchiapi.com/v1').replace(/\/+$/, '');
+        const testUrl = `${target}/usage`;
+        const resp = await fetch(testUrl, {
+          headers: {
+            'Authorization': `Bearer ${item.upstreamKey}`,
+            'User-Agent': 'Cursor/0.45.0'
+          },
+          signal: AbortSignal.timeout(5000)
+        });
+        if (resp.ok) {
+          const usage = await resp.json();
+          let currentBal = item.currentBalance;
+          if (usage.quota && usage.quota.remaining !== undefined) {
+            currentBal = Number(usage.quota.remaining);
+          } else if (usage.remaining !== undefined) {
+            currentBal = Number(usage.remaining);
+          }
+          item.currentBalance = currentBal;
+          item.balance = currentBal;
+          item.lastChecked = new Date().toISOString();
+          results.push({ id: item.id, ok: true, balance: currentBal });
+        } else {
+          results.push({ id: item.id, ok: false, status: resp.status });
+        }
+      } catch (err) {
+        results.push({ id: item.id, ok: false, error: err.message });
+      }
+    }
+    writeDB(db);
+    res.json({ success: true, count: results.length, results });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Get Clients Subscriptions
 app.get('/api/admin/clients', requireAdmin, (req, res) => {
   const db = readDB();

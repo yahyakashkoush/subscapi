@@ -20,7 +20,7 @@ export function SubscShell({ children }: { children: ReactNode }) {
         <header className="site-header">
           <div className="header-inner">
             <Link to="/" className="brand">
-              <img src={robot.url} alt="" />
+              <img src="/subsc-robot.png" alt="SubscAPI Logo" />
               <span dir="ltr">
                 subsc<span className="brand-api">api</span>
                 <span className="brand-dot">.</span>
@@ -105,13 +105,14 @@ export function SubscShell({ children }: { children: ReactNode }) {
         <main>{children}</main>
         <Button variant="glass" className="support-float" asChild>
           <a href="https://t.me/subscnow" target="_blank" rel="noreferrer">
-            <img src={robot.url} alt="" />
+            <img src="/subsc-robot.png" alt="دعم SubscAPI" />
             تواصل مع الدعم <ArrowUpLeft size={14} />
           </a>
         </Button>
         <footer className="site-footer">
           <div className="footer-inner">
             <Link to="/" className="brand">
+              <img src="/subsc-robot.png" alt="SubscAPI Logo" />
               <span dir="ltr">
                 subsc<span className="brand-api">api</span>
                 <span className="brand-dot">.</span>

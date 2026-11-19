@@ -46,6 +46,13 @@ function Index() {
       active = false;
     };
   }, []);
+  const hasStockData = Object.keys(stocks).length > 0;
+  const inStockPackages = packages.filter((pack) => {
+    if (!hasStockData) return true;
+    return (stocks[pack.id] ?? 1) > 0;
+  });
+  const displayedPackages = inStockPackages.length > 0 ? inStockPackages : packages;
+
   return (
     <>
       <section className="hero-section">
@@ -110,8 +117,8 @@ function Index() {
           <div className="mascot-scene">
             <img
               className="hero-robot"
-              src={robot.url}
-              alt="روبوت SubscAPI الأبيض يلوح بيده مع عيون زرقاء مضيئة"
+              src="/subsc-robot.png"
+              alt="روبوت SubscAPI الذكي"
             />
           </div>
         </div>
@@ -147,14 +154,16 @@ function Index() {
         <div className="section-heading">
           <div className="section-kicker">الباقات والأسعار</div>
           <h2>اختَر الباقة المناسبة لاستخدامك.</h2>
-          <p>ثلاث باقات، ورصيد كامل لكل باقة. ادفع مرة واحدة واستخدمه مع أدواتك المفضلة.</p>
+          <p>باقات مباشرة مع رصيد كامل لكل باقة. ادفع واستلم مفتاحك فوراً للعمل مع أدواتك المفضلة.</p>
         </div>
         <div className="pricing-grid">
-          {packages.map((pack, index) => {
-            const Icon = index === 0 ? Code2 : index === 1 ? Zap : Building2;
+          {displayedPackages.map((pack, index) => {
+            const Icon = pack.amount === 100 ? Code2 : pack.amount === 200 ? Zap : Building2;
+            const isFeatured = pack.amount === 200;
+            const isOutOfStock = stocks[pack.id] === 0;
             return (
-              <article className={`price-card ${index === 1 ? "featured-card" : ""}`} key={pack.id}>
-                {index === 1 && <span className="popular-tag">الأكثر طلباً</span>}
+              <article className={`price-card ${isFeatured ? "featured-card" : ""}`} key={pack.id}>
+                {isFeatured && <span className="popular-tag">الأكثر طلباً</span>}
                 <div className="plan-top">
                   <span className={`plan-icon plan-icon-${index}`}>
                     <Icon size={23} />
@@ -184,27 +193,19 @@ function Index() {
                   ))}
                 </ul>
                 <Button
-                  variant={index === 1 ? "premium" : "glass"}
+                  variant={isFeatured ? "premium" : "glass"}
                   className="plan-button"
                   onClick={() => setSelected(pack)}
-                  disabled={stocks[pack.id] === 0}
+                  disabled={isOutOfStock}
                 >
-                  تفعيل واستلام المفتاح فوراً
+                  {isOutOfStock ? "نفدت الكمية مؤقتاً" : "تفعيل واستلام المفتاح فوراً"}
                   <ArrowLeft size={15} />
                 </Button>
                 <div className="stock-label">
-                  <span
-                    className={
-                      stocks[pack.id] !== undefined && (stocks[pack.id] ?? 0) > 0
-                        ? "status-dot"
-                        : "stock-dot"
-                    }
-                  />
-                  {stocks[pack.id] === undefined
-                    ? "يتم تأكيد التوفر عند التفعيل"
-                    : (stocks[pack.id] ?? 0) > 0
-                      ? `متوفر في المخزن · ${stocks[pack.id]} مفاتيح جاهزة`
-                      : "نفدت المفاتيح حالياً"}
+                  <span className={isOutOfStock ? "stock-dot" : "status-dot"} />
+                  {isOutOfStock
+                    ? "نفدت الحصة حالياً — انتظر توفير كميات جديدة"
+                    : "تفعيل فوري وتسليم مباشر للمفتاح ⚡"}
                 </div>
               </article>
             );

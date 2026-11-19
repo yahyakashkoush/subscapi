@@ -133,26 +133,32 @@ code {
 .brand {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 8px;
   color: var(--foreground);
   font-family: var(--font-sans);
-  font-size: 25px;
+  font-size: 26px;
   font-weight: 900;
   direction: ltr;
+  text-decoration: none;
 }
 .brand img {
-  width: 34px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
   object-fit: contain;
+  transition: transform 0.2s ease;
+}
+.brand:hover img {
+  transform: scale(1.05);
 }
 .brand-api {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--foreground);
-  margin-left: 3px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0284c7;
+  margin-left: 2px;
 }
 .brand-dot {
-  color: var(--primary);
+  color: #38bdf8;
+  font-weight: 900;
 }
 .main-nav {
   display: flex;

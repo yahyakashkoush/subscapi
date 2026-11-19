@@ -291,8 +291,14 @@ function Admin() {
           </label>
         </div>
         <label>
-          مفاتيح المصدر
-          <textarea dir="ltr" name="keys" required rows={4} placeholder="sk-..." />
+          مفاتيح المصدر (أضف مفتاح واحد في كل سطر للإضافة دفعة واحدة)
+          <textarea
+            dir="ltr"
+            name="keys"
+            required
+            rows={5}
+            placeholder={"sk-...\nsk-...\nsk-..."}
+          />
         </label>
         <Button type="submit" variant="premium" disabled={busy}>
           <Plus />
@@ -340,19 +346,34 @@ function Admin() {
             العملاء
           </Button>
         </div>
-        <Button
-          variant="glass"
-          disabled={busy}
-          onClick={() => {
-            setBusy(true);
-            refresh()
-              .catch((error) => setError(error.message))
-              .finally(() => setBusy(false));
-          }}
-        >
-          <RefreshCw />
-          تحديث
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="glass"
+            disabled={busy}
+            onClick={() => {
+              setBusy(true);
+              action("/api/admin/inventory/sync-all")
+                .catch((error) => setError(error.message))
+                .finally(() => setBusy(false));
+            }}
+          >
+            <RefreshCw />
+            مزامنة كل الأرصدة ⚡
+          </Button>
+          <Button
+            variant="glass"
+            disabled={busy}
+            onClick={() => {
+              setBusy(true);
+              refresh()
+                .catch((error) => setError(error.message))
+                .finally(() => setBusy(false));
+            }}
+          >
+            <RefreshCw />
+            تحديث
+          </Button>
+        </div>
       </div>
       <div
         className="table-scroll"

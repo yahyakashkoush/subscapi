@@ -11,6 +11,22 @@
   },
   "inventory": [
     {
+      "id": "inv_96cc6d1960b0",
+      "upstreamKey": "sk-test-inventory-key-demo-100",
+      "key": "sk-test-inventory-key-demo-100",
+      "tier": 100,
+      "initialBalance": 100,
+      "currentBalance": 100,
+      "balance": 100,
+      "currency": "USD",
+      "baseUrl": "https://api.xingchiapi.com/v1",
+      "status": "available",
+      "label": "مفتاح 100$ - دفعة ١٩‏/١١‏/٢٠٢٦",
+      "addedAt": "2026-11-19T15:07:36.897Z",
+      "lastChecked": "2026-11-19T15:07:36.897Z",
+      "assignedTo": null
+    },
+    {
       "id": "inv_71562ce0d632",
       "upstreamKey": "sk-e808c6ee360b9fbc37273c7d4b905a12fd91eca3814655521e5ac3c3c6ff8901",
       "tier": 100,
