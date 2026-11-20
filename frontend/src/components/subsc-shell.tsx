@@ -95,12 +95,18 @@ export function SubscShell({ children }: { children: ReactNode }) {
                   <UserButton
                     afterSignOutUrl="/"
                     appearance={{
+                      layout: {
+                        unsafe_disableDevelopmentModeWarnings: true,
+                        logoPlacement: "none",
+                      },
                       elements: {
                         avatarBox: "w-8 h-8 rounded-full ring-2 ring-primary/30",
-                        userButtonPopoverFooter: { display: "none" },
-                        footer: { display: "none" },
-                        devModeTag: { display: "none" },
-                        badge: { display: "none" },
+                        userButtonPopoverFooter: "!hidden hidden !h-0 !p-0 !m-0",
+                        footer: "!hidden hidden !h-0 !p-0 !m-0",
+                        footerAction: "!hidden hidden !h-0 !p-0 !m-0",
+                        devModeTag: "!hidden hidden !h-0 !p-0 !m-0",
+                        badge: "!hidden hidden !h-0 !p-0 !m-0",
+                        developmentModeBadge: "!hidden hidden !h-0 !p-0 !m-0",
                       },
                     }}
                   >

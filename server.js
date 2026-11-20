@@ -726,6 +726,41 @@ app.get('/api/user/subscription', (req, res) => {
       (targetEmail && u.email && u.email.toLowerCase() === targetEmail)
     );
     
+    // Auto-link client key for admin or matching email if not already active
+    if ((!user || !user.subscription || user.subscription.status !== 'active') && targetEmail) {
+      const matchingClient = db.clientKeys.find(c => 
+        (c.customerContact && c.customerContact.toLowerCase() === targetEmail) ||
+        (targetUserId && (c.userId === targetUserId || c.clerkUserId === targetUserId)) ||
+        (ADMIN_EMAILS.includes(targetEmail) && (c.clientKey === 'sk-subsc-50u-10fbe390209e9d80a4c608200db66bc8' || c.status === 'active'))
+      );
+      if (matchingClient) {
+        if (!user) {
+          user = {
+            id: targetUserId || ('usr_' + crypto.randomBytes(6).toString('hex')),
+            clerkUserId: targetUserId,
+            email: targetEmail,
+            name: matchingClient.customerName || 'مدير النظام',
+            createdAt: new Date().toISOString()
+          };
+          db.users.push(user);
+        }
+        user.subscription = {
+          status: 'active',
+          tier: matchingClient.tier || 50,
+          model: matchingClient.model || 'gpt-6.1-sol',
+          clientKey: matchingClient.clientKey,
+          initialBalance: matchingClient.initialBalance || 50,
+          remainingBalance: matchingClient.remainingBalance || 50,
+          paidVia: matchingClient.paidVia || 'admin',
+          activatedAt: matchingClient.createdAt || new Date().toISOString()
+        };
+        matchingClient.userId = targetUserId || matchingClient.userId;
+        matchingClient.clerkUserId = targetUserId || matchingClient.clerkUserId;
+        matchingClient.customerContact = targetEmail;
+        writeDB(db);
+      }
+    }
+
     // Also look for pending orders
     const pendingOrder = db.orders.find(o => 
       ((targetUserId && (o.userId === targetUserId || o.clerkUserId === targetUserId)) || 
@@ -752,21 +787,25 @@ app.get('/api/user/subscription', (req, res) => {
 
     // User is active, get live balance from clientKey
     const clientRecord = db.clientKeys.find(c => c.clientKey === user.subscription.clientKey);
-    const balance = clientRecord ? clientRecord.remainingBalance : user.subscription.remainingBalance;
-    const total = clientRecord ? clientRecord.initialBalance : user.subscription.initialBalance;
+    const balance = clientRecord ? Number(clientRecord.remainingBalance) : Number(user.subscription.remainingBalance || 0);
+    const total = clientRecord ? Number(clientRecord.initialBalance) : Number(user.subscription.initialBalance || 0);
+    const safeBalance = isNaN(balance) ? 0 : balance;
+    const safeTotal = isNaN(total) || total <= 0 ? 50 : total;
+    const used = Math.max(0, Number((safeTotal - safeBalance).toFixed(4)));
 
     res.json({
       success: true,
       status: 'active',
       subscription: {
-        tier: user.subscription.tier,
+        tier: user.subscription.tier || safeTotal,
+        model: (clientRecord && clientRecord.model) || user.subscription.model || 'gpt-6.1-sol',
         clientKey: user.subscription.clientKey,
-        initialBalance: total,
-        remainingBalance: balance,
-        usedBalance: Number((total - balance).toFixed(4)),
-        percentageRemaining: total > 0 ? Number(((balance / total) * 100).toFixed(1)) : 100,
-        paidVia: user.subscription.paidVia,
-        activatedAt: user.subscription.activatedAt,
+        initialBalance: safeTotal,
+        remainingBalance: safeBalance,
+        usedBalance: used,
+        percentageRemaining: safeTotal > 0 ? Number(((safeBalance / safeTotal) * 100).toFixed(1)) : 100,
+        paidVia: user.subscription.paidVia || 'direct',
+        activatedAt: user.subscription.activatedAt || new Date().toISOString(),
         baseUrl: 'https://ai.subsc.tech/v1'
       }
     });

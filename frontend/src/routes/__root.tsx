@@ -138,6 +138,69 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  // Bulletproof client-side watermark suppression for Clerk
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    function purgeWatermarks() {
+      // 1. Selector-based suppression
+      const selectors = [
+        ".cl-userButtonPopoverFooter",
+        ".cl-userButtonPopoverFooter__help",
+        ".cl-userButtonPopoverFooter__terms",
+        ".cl-userButtonPopoverFooter__privacy",
+        ".cl-footer",
+        ".cl-footerAction",
+        ".cl-developmentModeBadge",
+        ".cl-devModeTag",
+        ".cl-badge",
+        ".cl-internal-phfxk9",
+        ".cl-internal-1dauvpw",
+        ".cl-internal-1hp5nqm",
+        "[data-localization-key='developmentMode']",
+        "[data-localization-key='badge__developmentMode']",
+        "[data-localization-key='securedByClerk']",
+      ];
+      selectors.forEach((sel) => {
+        document.querySelectorAll(sel).forEach((el) => {
+          (el as HTMLElement).style.setProperty("display", "none", "important");
+          (el as HTMLElement).style.setProperty("visibility", "hidden", "important");
+          (el as HTMLElement).style.setProperty("height", "0", "important");
+          (el as HTMLElement).style.setProperty("padding", "0", "important");
+          (el as HTMLElement).style.setProperty("margin", "0", "important");
+        });
+      });
+
+      // 2. Text-node walker targeting "Development mode" and "Secured by"
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      let node: Node | null;
+      while ((node = walker.nextNode())) {
+        const text = (node.textContent || "").trim();
+        if (
+          text === "Development mode" ||
+          text === "Secured by" ||
+          text === "Secured by Clerk" ||
+          text.includes("Development mode") ||
+          text.includes("Secured by")
+        ) {
+          const parent = node.parentElement;
+          if (parent && !parent.closest(".site-header") && !parent.closest("main")) {
+            parent.style.setProperty("display", "none", "important");
+            const grandParent = parent.parentElement;
+            if (grandParent && grandParent.classList.contains("cl-userButtonPopoverFooter")) {
+              grandParent.style.setProperty("display", "none", "important");
+            }
+          }
+        }
+      }
+    }
+
+    purgeWatermarks();
+    const observer = new MutationObserver(() => purgeWatermarks());
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <ClerkProvider
       publishableKey={CLERK_PUBLISHABLE_KEY}
@@ -148,15 +211,15 @@ function RootComponent() {
           logoPlacement: "none",
         },
         elements: {
-          footer: "hidden",
-          footerAction: "hidden",
-          userButtonPopoverFooter: "hidden",
-          userButtonPopoverFooter__help: "hidden",
-          userButtonPopoverFooter__terms: "hidden",
-          userButtonPopoverFooter__privacy: "hidden",
-          devModeTag: "hidden",
-          badge: "hidden",
-          developmentModeBadge: "hidden",
+          footer: "!hidden hidden !h-0 !p-0 !m-0",
+          footerAction: "!hidden hidden !h-0 !p-0 !m-0",
+          userButtonPopoverFooter: "!hidden hidden !h-0 !p-0 !m-0",
+          userButtonPopoverFooter__help: "!hidden hidden !h-0 !p-0 !m-0",
+          userButtonPopoverFooter__terms: "!hidden hidden !h-0 !p-0 !m-0",
+          userButtonPopoverFooter__privacy: "!hidden hidden !h-0 !p-0 !m-0",
+          devModeTag: "!hidden hidden !h-0 !p-0 !m-0",
+          badge: "!hidden hidden !h-0 !p-0 !m-0",
+          developmentModeBadge: "!hidden hidden !h-0 !p-0 !m-0",
         },
       }}
     >

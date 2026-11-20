@@ -255,9 +255,15 @@ function Dashboard() {
             <div className="space-y-3">
               <CopyBox
                 label="مفتاح الـ API الخاص بك (Authorization Bearer)"
-                value={showKey ? subData.clientKey : subData.clientKey.replace(/(.{12}).+(.{6})/, "$1••••••••••••••••$2")}
+                value={
+                  showKey
+                    ? subData.clientKey || ""
+                    : subData.clientKey && subData.clientKey.length > 18
+                    ? subData.clientKey.replace(/(.{12}).+(.{6})/, "$1••••••••••••••••$2")
+                    : subData.clientKey || "••••••••••••••••"
+                }
               />
-              <CopyBox label="رابط الخادم المباشر (Base URL)" value={subData.baseUrl} />
+              <CopyBox label="رابط الخادم المباشر (Base URL)" value={subData.baseUrl || "https://ai.subsc.tech/v1"} />
             </div>
 
             {/* Live Balance Bar */}
@@ -265,18 +271,18 @@ function Dashboard() {
               <div className="flex justify-between items-center text-sm">
                 <span className="font-medium text-muted-foreground">رصيد الاستخدام المتبقي:</span>
                 <span className="font-bold font-mono text-primary text-base">
-                  ${subData.remainingBalance.toFixed(2)} / ${subData.initialBalance.toFixed(2)} USD
+                  ${(Number(subData.remainingBalance) || 0).toFixed(2)} / ${(Number(subData.initialBalance) || 0).toFixed(2)} USD
                 </span>
               </div>
               <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden">
                 <div
                   className="bg-primary h-2.5 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, Math.max(2, subData.percentageRemaining))}%` }}
+                  style={{ width: `${Math.min(100, Math.max(2, Number(subData.percentageRemaining) || 0))}%` }}
                 />
               </div>
               <div className="flex justify-between text-[11px] text-muted-foreground">
-                <span>المستهلك: ${subData.usedBalance.toFixed(2)}</span>
-                <span>المتبقي: {subData.percentageRemaining}%</span>
+                <span>المستهلك: ${(Number(subData.usedBalance) || 0).toFixed(2)}</span>
+                <span>المتبقي: {Number(subData.percentageRemaining) || 0}%</span>
               </div>
             </div>
 
@@ -469,7 +475,7 @@ Model ID: gpt-6.1-sol`}
             ))}
           </div>
 
-          <Checkout selected={selectedPack} close={() => setSelectedPack(null)} />
+          {selectedPack && <Checkout selected={selectedPack} close={() => setSelectedPack(null)} />}
         </div>
       )}
     </div>
