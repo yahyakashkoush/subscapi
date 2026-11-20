@@ -26,11 +26,12 @@
       "balance": 250,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 250$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_8d75ccd9ee16",
@@ -45,11 +46,12 @@
       "balance": 250,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 250$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_6c197b5d8c6d",
@@ -64,11 +66,12 @@
       "balance": 250,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 250$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_afdbb46de6e7",
@@ -83,11 +86,12 @@
       "balance": 250,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 250$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_fa4f0ad12480",
@@ -102,11 +106,12 @@
       "balance": 250,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 250$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_94901e0edaaf",
@@ -121,11 +126,12 @@
       "balance": 250,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 250$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_9998268ef295",
@@ -140,11 +146,12 @@
       "balance": 250,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 250$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_032ea1c03bdd",
@@ -159,11 +166,12 @@
       "balance": 250,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 250$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_04d33520b9f6",
@@ -178,11 +186,12 @@
       "balance": 250,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 250$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_0bb87ce4534c",
@@ -197,11 +206,12 @@
       "balance": 250,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 250$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_3dd8091e1281",
@@ -216,11 +226,12 @@
       "balance": 50,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 50 7D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_bab46dcebab9",
@@ -235,11 +246,12 @@
       "balance": 50,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 50 7D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_9033ae68860b",
@@ -254,11 +266,12 @@
       "balance": 250,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT gpt-6.1-sol 250$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_4d1645f0c92f",
@@ -273,11 +286,12 @@
       "balance": 250,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT gpt-6.1-sol 250$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_3fc0e68b0638",
@@ -292,11 +306,12 @@
       "balance": 250,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT gpt-6.1-sol 250$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_6bdbe500da2b",
@@ -311,11 +326,12 @@
       "balance": 250,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT gpt-6.1-sol 250$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_4b2239f88a65",
@@ -330,11 +346,12 @@
       "balance": 250,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT gpt-6.1-sol 250$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_4e0984c80f48",
@@ -444,11 +461,12 @@
       "balance": 50,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT gpt-6.1-sol 50 7D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_55aa5a7b51d4",
@@ -482,11 +500,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_c2e48f585399",
@@ -501,11 +520,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_9dfa797e93ce",
@@ -520,11 +540,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_052d59c6c36e",
@@ -539,11 +560,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_ea86a1576d4c",
@@ -558,11 +580,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_dc3df15e65c2",
@@ -577,11 +600,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_95552b83734a",
@@ -596,11 +620,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_b6b7e9071f5d",
@@ -615,11 +640,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_9860dffaa150",
@@ -634,11 +660,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_1c2e3e516327",
@@ -653,11 +680,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_5e0bfa72a5af",
@@ -672,11 +700,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_e207c1838876",
@@ -691,11 +720,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_4d3bb153e0bd",
@@ -710,11 +740,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT ASTRA 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_ca20565264e2",
@@ -729,11 +760,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT gpt-6.1-sol 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_249e4c0a1c3a",
@@ -748,11 +780,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT gpt-6.1-sol 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_24ef3cba3f32",
@@ -767,11 +800,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT gpt-6.1-sol 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_a9e97b79376d",
@@ -786,11 +820,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT gpt-6.1-sol 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_d2d3ae8c820b",
@@ -805,11 +840,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT gpt-6.1-sol 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_1ab41970a39d",
@@ -824,11 +860,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT gpt-6.1-sol 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_396d5403cfe4",
@@ -843,11 +880,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT gpt-6.1-sol 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_81dabbb14c4b",
@@ -862,11 +900,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT gpt-6.1-sol 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_52c68926f3fd",
@@ -881,11 +920,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT gpt-6.1-sol 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_fd42eabab37f",
@@ -900,11 +940,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT gpt-6.1-sol 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_06e9f54ce2c7",
@@ -919,11 +960,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT gpt-6.1-sol 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_6bc6ae0de100",
@@ -938,11 +980,12 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT gpt-6.1-sol 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     },
     {
       "id": "inv_dd381f67a40f",
@@ -957,18 +1000,19 @@
       "balance": 100,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
+      "status": "disabled",
       "label": "GPT gpt-6.1-sol 100$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null
+      "assignedTo": null,
+      "disabledReason": "upstream_inactive"
     }
   ],
   "clientKeys": [
     {
       "id": "cli_7b1a144a162b",
       "clientKey": "sk-subsc-50u-10fbe390209e9d80a4c608200db66bc8",
-      "inventoryKeyId": "inv_8f0afff80b07",
+      "inventoryKeyId": "inv_55aa5a7b51d4",
       "tier": 50,
       "model": "GPT ASTRA",
       "customerName": "yahya kashkoush",
@@ -993,12 +1037,13 @@
       "createdAt": "2026-11-19T16:33:47.535Z",
       "totalRequests": 4,
       "totalTokens": 5798,
-      "lastUsedAt": "2026-11-19T16:57:42.140Z"
+      "lastUsedAt": "2026-11-19T16:57:42.140Z",
+      "inventoryKeyId": "inv_55aa5a7b51d4"
     },
     {
       "id": "cli_d4921ce9fd89",
       "clientKey": "sk-subsc-500u-16e06cef4a982b8ff9333e5a87a33725",
-      "inventoryKeyId": "inv_cd71b7ffd900",
+      "inventoryKeyId": "inv_55aa5a7b51d4",
       "tier": 500,
       "customerName": "مطور تجريبي",
       "customerContact": "test@subscapi.com",
@@ -1014,7 +1059,7 @@
     {
       "id": "cli_036c462e433a",
       "clientKey": "sk-subsc-100u-97e041c0792252226f324fa60cdc4e40",
-      "inventoryKeyId": "inv_ecfc17774d4b",
+      "inventoryKeyId": "inv_55aa5a7b51d4",
       "tier": 100,
       "customerName": "يحيى عماد",
       "customerContact": "",
@@ -1030,7 +1075,7 @@
     {
       "id": "cli_096c02f3308c",
       "clientKey": "sk-subsc-100u-d7b86f773103fd64cdbe93da3ea0f90b",
-      "inventoryKeyId": "inv_71562ce0d632",
+      "inventoryKeyId": "inv_55aa5a7b51d4",
       "tier": 100,
       "customerName": "يحيى عماد",
       "customerContact": "@yahya_telegram",
