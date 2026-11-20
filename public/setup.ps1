@@ -22,8 +22,12 @@ function Write-BrandHeader {
 
 Write-BrandHeader
 
-# Step 1: Prompt for API Key
+# Step 1: Prompt for API Key (or accept from argument)
 $subscKey = ""
+if ($args -and $args.Count -gt 0 -and (-not [string]::IsNullOrWhiteSpace($args[0]))) {
+    $subscKey = $args[0].Trim()
+}
+
 while ([string]::IsNullOrWhiteSpace($subscKey)) {
     Write-Host "[?] ادخل مفتاح SubscAPI الخاص بك (Enter your API Key):" -ForegroundColor Green
     $subscKey = Read-Host "    (sk-subsc-...)"
