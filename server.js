@@ -38,6 +38,17 @@ if (fs.existsSync(frontendPublic)) {
 }
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Explicit high-speed endpoints for PowerShell & Shell Auto-Configurators
+app.get(['/setup.ps1', '/install.ps1'], (req, res) => {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.sendFile(path.resolve(__dirname, 'public/setup.ps1'));
+});
+
+app.get('/setup.sh', (req, res) => {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.sendFile(path.resolve(__dirname, 'public/setup.sh'));
+});
+
 const ADMIN_EMAILS = [
   'yahyaemad999@gmail.com',
   'yahyaemadkashkoush@gmail.com'
@@ -495,66 +506,145 @@ app.post('/api/client/check-key', (req, res) => {
     const cleanKey = clientKey.trim();
     const db = readDB();
 
-    const client = db.clientKeys.find(k => k.clientKey === cleanKey);
-    if (!client) {
-      return res.status(404).json({
-        success: false,
-        error: 'المفتاح غير موجود في قاعدة بيانات SubscAPI. تأكد من صحة المفتاح المكتوب.'
+    // 1. Look for Client Key
+    const client = db.clientKeys ? db.clientKeys.find(k => k.clientKey === cleanKey) : null;
+    if (client) {
+      const pkg = (db.packages && db.packages.find(p => p.id === client.packageId)) || { name: `باقة ${client.tier}$` };
+      const remaining = Number(client.remainingBalance.toFixed(4));
+      const used = Number((client.initialBalance - client.remainingBalance).toFixed(4));
+      const percentageUsed = client.initialBalance > 0 ? Number(((used / client.initialBalance) * 100).toFixed(1)) : 0;
+      const percentageRemaining = client.initialBalance > 0 ? Number(((remaining / client.initialBalance) * 100).toFixed(1)) : 100;
+
+      return res.json({
+        success: true,
+        remainingBalance: remaining,
+        remaining: remaining,
+        totalLimit: client.initialBalance,
+        limit: client.initialBalance,
+        used: used,
+        percentage: percentageUsed,
+        percentageRemaining: percentageRemaining,
+        percentageUsed: percentageUsed,
+        totalRequests: client.totalRequests || 0,
+        status: client.status,
+        data: {
+          clientKey: client.clientKey,
+          customerName: client.customerName,
+          tier: client.tier,
+          model: client.model || 'gpt-6.1-sol',
+          packageName: pkg.name,
+          initialBalance: client.initialBalance,
+          remainingBalance: remaining,
+          usedBalance: used,
+          percentageRemaining: percentageRemaining,
+          percentageUsed: percentageUsed,
+          status: client.status,
+          totalRequests: client.totalRequests || 0,
+          createdAt: client.createdAt,
+          lastUsedAt: client.lastUsedAt || 'لم يستخدم بعد'
+        }
       });
     }
 
-    const pkg = db.packages.find(p => p.id === client.packageId) || { name: `باقة ${client.tier}$` };
-    const remaining = Number(client.remainingBalance.toFixed(4));
-    const used = Number((client.initialBalance - client.remainingBalance).toFixed(4));
-    const percentageUsed = client.initialBalance > 0 ? Number(((used / client.initialBalance) * 100).toFixed(1)) : 0;
-    const percentageRemaining = client.initialBalance > 0 ? Number(((remaining / client.initialBalance) * 100).toFixed(1)) : 100;
+    // 2. Look for Upstream / Inventory Key
+    const inv = db.inventory ? db.inventory.find(i => i.upstreamKey === cleanKey || i.key === cleanKey) : null;
+    if (inv) {
+      const initial = inv.initialBalance || inv.tier || 100;
+      const current = inv.currentBalance !== undefined ? inv.currentBalance : initial;
+      const used = Number((initial - current).toFixed(4));
+      const percentageUsed = initial > 0 ? Number(((used / initial) * 100).toFixed(1)) : 0;
+      const percentageRemaining = initial > 0 ? Number(((current / initial) * 100).toFixed(1)) : 100;
 
-    res.json({
-      success: true,
-      remainingBalance: remaining,
-      remaining: remaining,
-      totalLimit: client.initialBalance,
-      limit: client.initialBalance,
-      used: used,
-      percentage: percentageUsed,
-      percentageRemaining: percentageRemaining,
-      percentageUsed: percentageUsed,
-      totalRequests: client.totalRequests || 0,
-      status: client.status,
-      data: {
-        clientKey: client.clientKey,
-        customerName: client.customerName,
-        tier: client.tier,
-        packageName: pkg.name,
-        initialBalance: client.initialBalance,
-        remainingBalance: remaining,
-        usedBalance: used,
+      return res.json({
+        success: true,
+        remainingBalance: current,
+        remaining: current,
+        totalLimit: initial,
+        limit: initial,
+        used: used,
+        percentage: percentageUsed,
         percentageRemaining: percentageRemaining,
         percentageUsed: percentageUsed,
-        status: client.status,
-        totalRequests: client.totalRequests || 0,
-        createdAt: client.createdAt,
-        lastUsedAt: client.lastUsedAt || 'لم يستخدم بعد'
-      }
+        totalRequests: 0,
+        status: inv.status || 'available',
+        data: {
+          clientKey: inv.upstreamKey || inv.key,
+          customerName: inv.label || inv.group || 'مفتاح مخزون رئيسي',
+          tier: inv.tier,
+          model: inv.model || 'gpt-6.1-sol',
+          packageName: inv.group || `باقة ${inv.tier}$`,
+          initialBalance: initial,
+          remainingBalance: current,
+          usedBalance: used,
+          percentageRemaining: percentageRemaining,
+          percentageUsed: percentageUsed,
+          status: inv.status || 'available',
+          totalRequests: 0,
+          createdAt: inv.addedAt || new Date().toISOString(),
+          lastUsedAt: inv.lastChecked || 'نشط'
+        }
+      });
+    }
+
+    return res.status(404).json({
+      success: false,
+      error: 'المفتاح غير موجود في قاعدة بيانات SubscAPI. تأكد من صحة المفتاح المكتوب.'
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// Legacy check-balance endpoint support
+// Legacy & Universal check-balance endpoint support
 app.post('/api/check-balance', async (req, res) => {
   try {
     const { apiKey, baseUrl } = req.body;
     if (!apiKey) return res.status(400).json({ success: false, error: 'API key is required' });
 
+    const cleanKey = apiKey.trim();
+    const db = readDB();
+
+    // Check SubscAPI database first
+    const client = db.clientKeys ? db.clientKeys.find(k => k.clientKey === cleanKey) : null;
+    const inv = db.inventory ? db.inventory.find(i => i.upstreamKey === cleanKey || i.key === cleanKey) : null;
+
+    if (client || inv) {
+      const initial = client ? client.initialBalance : (inv.initialBalance || inv.tier || 100);
+      const remaining = client ? Number(client.remainingBalance.toFixed(4)) : (inv.currentBalance !== undefined ? inv.currentBalance : initial);
+      const used = Number((initial - remaining).toFixed(4));
+      const percentageUsed = initial > 0 ? Math.round((used / initial) * 100) : 0;
+      const percentageRemaining = initial > 0 ? Math.round((remaining / initial) * 100) : 100;
+
+      return res.json({
+        success: true,
+        provider: 'SubscAPI Gateway Engine',
+        currency: 'USD',
+        balance: {
+          remaining: remaining,
+          limit: initial,
+          used: used,
+          percentage_used: percentageUsed,
+          percentage_remaining: percentageRemaining
+        },
+        status: client ? client.status : (inv.status || 'active'),
+        isValid: true,
+        days_until_expiry: 30,
+        expires_at: null,
+        models: [
+          { id: 'gpt-6.1-sol', object: 'model' },
+          { id: 'gpt-4o', object: 'model' }
+        ]
+      });
+    }
+
+    // Fallback: query upstream URL if provided and not SubscAPI key
     const targetUrl = (baseUrl || 'https://api.xingchiapi.com/v1').replace(/\/+$/, '');
     const usageResp = await fetch(`${targetUrl}/usage`, {
-      headers: { 'Authorization': `Bearer ${apiKey.trim()}` }
+      headers: { 'Authorization': `Bearer ${cleanKey}` }
     }).catch(() => null);
 
     let modelsResp = await fetch(`${targetUrl}/models`, {
-      headers: { 'Authorization': `Bearer ${apiKey.trim()}` }
+      headers: { 'Authorization': `Bearer ${cleanKey}` }
     }).catch(() => null);
 
     let usageData = usageResp && usageResp.ok ? await usageResp.json() : null;
@@ -1351,6 +1441,56 @@ app.delete('/api/admin/packages/:id', requireAdmin, (req, res) => {
   db.packages = db.packages.filter(p => p.id !== req.params.id);
   writeDB(db);
   res.json({ success: true, packages: db.packages });
+});
+
+// Database Export / Backup endpoint for Admin
+app.get('/api/admin/db/export', requireAdmin, (req, res) => {
+  try {
+    const db = readDB();
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="subscapi-db-${timestamp}.json"`);
+    res.send(JSON.stringify(db, null, 2));
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Database Import / Restore endpoint for Admin
+app.post('/api/admin/db/import', requireAdmin, (req, res) => {
+  try {
+    const incomingData = req.body;
+    if (!incomingData || typeof incomingData !== 'object') {
+      return res.status(400).json({ success: false, error: 'بيانات قاعدة البيانات غير صالحة' });
+    }
+    if (!incomingData.inventory && !incomingData.clientKeys) {
+      return res.status(400).json({ success: false, error: 'الملف لا يحتوي على حقول SubscAPI المطلوبة' });
+    }
+
+    writeDB(incomingData);
+    res.json({
+      success: true,
+      message: 'تمت استعادة قاعدة البيانات بنجاح',
+      inventoryCount: incomingData.inventory ? incomingData.inventory.length : 0,
+      clientKeysCount: incomingData.clientKeys ? incomingData.clientKeys.length : 0
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Database Status endpoint
+app.get('/api/admin/db/status', requireAdmin, (req, res) => {
+  const db = readDB();
+  const isPersistent = fs.existsSync('/var/data');
+  res.json({
+    success: true,
+    storage: isPersistent ? 'Render Persistent Disk (/var/data)' : 'Local File Storage',
+    inventoryCount: db.inventory ? db.inventory.length : 0,
+    clientKeysCount: db.clientKeys ? db.clientKeys.length : 0,
+    usersCount: db.users ? db.users.length : 0,
+    ordersCount: db.orders ? db.orders.length : 0
+  });
 });
 
 // -----------------------------------------------------------------

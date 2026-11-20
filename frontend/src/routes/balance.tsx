@@ -66,10 +66,10 @@ function Balance() {
         <input
           name="key"
           dir="ltr"
-          placeholder="sk-subsc-..."
+          placeholder="sk-subsc-... أو sk-..."
           aria-label="مفتاح API"
           required
-          pattern="sk-subsc-.+"
+          pattern="sk-.+"
         />
         <Button variant="premium" disabled={busy} type="submit">
           {busy ? <LoaderCircle className="animate-spin" /> : <Activity />}فحص الرصيد
