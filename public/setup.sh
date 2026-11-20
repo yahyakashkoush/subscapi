@@ -75,7 +75,8 @@ echo -e "\033[1;36m[*] جاري تطبيق الإعدادات على محركا�
 update_json "$CURSOR_CONFIG" "cursor.general.openAiBaseUrl" "https://ai.subsc.tech/v1"
 update_json "$CURSOR_CONFIG" "cursor.general.openAiApiKey" "$SUBSC_KEY"
 update_json "$CURSOR_CONFIG" "cursor.general.openAiModel" "gpt-6.1-sol"
-echo -e "\033[1;32m    [OK] تم ضبط إعدادات Cursor بنجاح.\033[0m"
+update_json "$CURSOR_CONFIG" "cursor.models" "[\"gpt-6.1-sol\", \"astra\", \"gpt-6\", \"gpt-4o\"]"
+echo -e "\033[1;32m    [OK] تم ضبط إعدادات Cursor بنجاح (gpt-6.1-sol و astra).\033[0m"
 
 # 2. Cline & Roo Code in VS Code
 update_json "$CODE_CONFIG" "claude-dev.apiProvider" "openai-compatible"

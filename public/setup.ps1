@@ -110,7 +110,7 @@ function Configure-Cursor {
     $cfg | Add-Member -Name "cursor.general.openAiApiKey" -Value $subscKey -MemberType NoteProperty -Force
     $cfg | Add-Member -Name "cursor.general.openAiModel" -Value "gpt-6.1-sol" -MemberType NoteProperty -Force
     $cfg | Add-Member -Name "cursor.general.overrideOpenAiBaseUrl" -Value $true -MemberType NoteProperty -Force
-    $cfg | Add-Member -Name "cursor.models" -Value @("gpt-6.1-sol", "gpt-4o") -MemberType NoteProperty -Force
+    $cfg | Add-Member -Name "cursor.models" -Value @("gpt-6.1-sol", "astra", "gpt-6", "gpt-4o") -MemberType NoteProperty -Force
 
     Save-JsonFileContent $cursorPath $cfg
     Write-Host "    [OK] تم تعديل إعدادات Cursor بنجاح في: $cursorPath" -ForegroundColor Green

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Code2, Terminal, Box, Check, ArrowUpLeft, Zap, Laptop, Layers } from "lucide-react";
+import { Code2, Terminal, Box, Check, ArrowUpLeft, Zap, Laptop, Layers, Apple, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CopyBox } from "@/components/subsc-controls";
 import { metadata } from "@/lib/subsc";
@@ -9,7 +9,7 @@ export const Route = createFileRoute("/guide")({
   head: () =>
     metadata(
       "دليل الربط للمطورين والمحررات",
-      "اربط مفتاح SubscAPI تلقائياً أو يدوياً مع Cursor وCline وWindsurf وQoder وOpenCode وPython.",
+      "اربط مفتاح SubscAPI تلقائياً أو يدوياً مع نماذج gpt-6.1-sol و ASTRA في Cursor وCline وWindsurf وQoder وOpenCode.",
     ),
   component: Guide,
 });
@@ -18,50 +18,52 @@ const endpoint = "https://ai.subsc.tech/v1";
 
 const guides = [
   {
-    name: "⚡ التثبيت التلقائي (PowerShell)",
+    name: "⚡ التثبيت التلقائي (Windows & Mac)",
     icon: Zap,
-    title: "أمر واحد في PowerShell، والملفات تتعدل تلقائياً.",
+    title: "أمر واحد في الطرفية، والإعدادات تُعدّل تلقائياً لكل أدواتك.",
     steps: [
-      "افتح Windows PowerShell على جهازك.",
-      "انسخ الأمر وشغله: سيطلب منك لصق مفتاح SubscAPI واختيار برنامجك المفضل.",
-      "يقوم السكربت تلقائياً بالدخول لملفات البرامج في القرص C: وتهيئة الإعدادات والموديل وفحص الاتصال!",
+      "اختر نظام التشغيل لجهازك (Windows PowerShell أو Mac / Linux Terminal).",
+      "انسخ الأمر وشغّله: سيطلب منك لصق مفتاح SubscAPI واختيار برنامجك المفضل أو الكل.",
+      "يقوم السكربت تلقائياً بالدخول لملفات البرامج وإعداد النماذج gpt-6.1-sol و astra مع فحص الاتصال!",
     ],
-    code: `irm https://ai.subsc.tech/setup.ps1 | iex`,
+    code: `# لأنظمة Windows (PowerShell):\nirm https://ai.subsc.tech/setup.ps1 | iex\n\n# لأنظمة macOS / Linux (Terminal):\ncurl -sSL https://ai.subsc.tech/setup.sh | bash`,
   },
   {
     name: "Cursor / Windsurf",
     icon: Box,
-    title: "أدواتك المفضلة. قوة استجابة فائقة.",
+    title: "أدواتك المفضلة. اختر بين gpt-6.1-sol و ASTRA.",
     steps: [
       "افتح إعدادات التطبيق (Settings) ثم انتقل إلى Models أو AI Providers.",
-      "فعّل خيار Override OpenAI Base URL وأدخل رابط الخدمة أدناه.",
-      "أضف مفتاح SubscAPI الخاص بك، ثم اختر النموذج gpt-6.1-sol.",
+      "فعّل خيار Override OpenAI Base URL وأدخل رابط الخدمة: https://ai.subsc.tech/v1.",
+      "أضف مفتاح SubscAPI الخاص بك، ثم اختر النموذج المناسب لمهمتك:",
+      "• اختر gpt-6.1-sol للمشاريع البرمجية الكبيرة والوكلاء الذكية.",
+      "• اختر astra (أو gpt-6) للاستجابة السريعة وتوليد الأكواد الفورية.",
     ],
-    code: `Base URL: ${endpoint}\nAPI Key: sk-subsc-YOUR-KEY\nModel: gpt-6.1-sol`,
+    code: `Base URL: ${endpoint}\nAPI Key: sk-subsc-YOUR-KEY\n\n# النماذج المتاحة:\nModel 1: gpt-6.1-sol   (للبرمجة العميقة والوكلاء)\nModel 2: astra        (للاستجابة السريعة)`,
   },
   {
     name: "Cline / Roo Code",
     icon: Code2,
-    title: "وكيلك الذكي، متصل وجاهز.",
+    title: "وكيلك الذكي في VS Code، متصل وجاهز.",
     steps: [
       "افتح إعدادات إضافة Cline أو Roo Code في VS Code.",
       "اختر OpenAI Compatible من قائمة API Provider.",
-      "في خانة Model Source URL (Optional) ضع: https://ai.subsc.tech/v1/models ليجلب النماذج تلقائياً.",
-      "في خانة Models اكتب gpt-6.1-sol ثم اضغط Enter في الكيبورد لتثبيتها.",
+      "في خانة Model Source URL ضع: https://ai.subsc.tech/v1/models ليجلب النماذج تلقائياً.",
+      "في خانة Models اكتب gpt-6.1-sol أو astra ثم اضغط Enter في الكيبورد لتثبيتها.",
       "الصق مفتاحك sk-subsc-YOUR-KEY وفعّل streaming و tools.",
     ],
-    code: `API Provider: OpenAI Compatible\nBase URL: ${endpoint}\nModel Source URL: ${endpoint}/models\nModel ID: gpt-6.1-sol\nAPI Key: sk-subsc-YOUR-KEY`,
+    code: `API Provider: OpenAI Compatible\nBase URL: ${endpoint}\nModel Source URL: ${endpoint}/models\nModels: gpt-6.1-sol, astra\nAPI Key: sk-subsc-YOUR-KEY`,
   },
   {
     name: "Qoder",
     icon: Laptop,
-    title: "توليد أكواد متطورة مع Qoder.",
+    title: "توليد أكواد متطورة وسريعة مع Qoder.",
     steps: [
       "افتح إعدادات مزودي الذكاء الاصطناعي (AI Providers) في Qoder.",
-      "اختر مزود OpenAI Compatible مخصص.",
-      "أدخل Base URL ومفتاحك، واختر gpt-6.1-sol كنموذج افتراضي.",
+      "اختر مزود OpenAI Compatible مخصص وضع Base URL: https://ai.subsc.tech/v1.",
+      "أدخل مفتاحك، وحدد النموذج gpt-6.1-sol أو astra.",
     ],
-    code: `Provider: OpenAI-Compatible\nBase URL: ${endpoint}\nAPI Key: sk-subsc-YOUR-KEY\nModel: gpt-6.1-sol`,
+    code: `Provider: OpenAI-Compatible\nBase URL: ${endpoint}\nAPI Key: sk-subsc-YOUR-KEY\nModel: gpt-6.1-sol (أو astra)`,
   },
   {
     name: "OpenCode",
@@ -69,30 +71,30 @@ const guides = [
     title: "تشغيل الأكواد والوكلاء مع OpenCode.",
     steps: [
       "في ملف إعدادات OpenCode أو المتغيرات البيئية، وجّه الاتصال إلى SubscAPI.",
-      "استخدم gpt-6.1-sol كنموذج معالجة للأوامر التفاعلية.",
+      "استخدم gpt-6.1-sol أو astra كنموذج لمعالجة المهام البرمجية.",
     ],
-    code: `openai_api_base="${endpoint}"\nopenai_api_key="sk-subsc-YOUR-KEY"\nmodel="gpt-6.1-sol"`,
+    code: `openai_api_base="${endpoint}"\nopenai_api_key="sk-subsc-YOUR-KEY"\nmodel="gpt-6.1-sol"\n# أو للنموذج السريع:\n# model="astra"`,
   },
   {
     name: "Python SDK",
     icon: Code2,
-    title: "من الفكرة إلى الكود.",
+    title: "من الفكرة إلى الكود مع OpenAI SDK الرسمي.",
     steps: [
       "ثبّت مكتبة OpenAI الرسمية باستخدام pip install openai.",
       "أضف مفتاحك ووجه base_url إلى رابط البوابة.",
-      "شغّل الكود لبدء محادثتك أو مهمتك البرمجية الأولى.",
+      "يمكنك التبديل بين نموذج gpt-6.1-sol و astra بسهولة تامة.",
     ],
-    code: `import os\nfrom openai import OpenAI\n\nclient = OpenAI(\n    api_key="sk-subsc-YOUR-KEY",\n    base_url="${endpoint}"\n)\n\nresponse = client.chat.completions.create(\n    model="gpt-6.1-sol",\n    messages=[{"role": "user", "content": "مرحباً! اكتب لي كوداً بلغة بايثون."}]\n)\nprint(response.choices[0].message.content)`,
+    code: `import os\nfrom openai import OpenAI\n\nclient = OpenAI(\n    api_key="sk-subsc-YOUR-KEY",\n    base_url="${endpoint}"\n)\n\n# 1. طلب عبر نموذج gpt-6.1-sol البرمجي\nresponse = client.chat.completions.create(\n    model="gpt-6.1-sol",\n    messages=[{"role": "user", "content": "اكتب لي كود بايثون متكامل."}]\n)\nprint("SOL:", response.choices[0].message.content)\n\n# 2. طلب عبر نموذج ASTRA السريع\nresponse_astra = client.chat.completions.create(\n    model="astra",\n    messages=[{"role": "user", "content": "مرحباً!"}]\n)\nprint("ASTRA:", response_astra.choices[0].message.content)`,
   },
   {
     name: "cURL / Terminal",
     icon: Terminal,
-    title: "طلبك المباشر، من الطرفية.",
+    title: "طلبك المباشر، من الطرفية في ثوانٍ.",
     steps: [
       "انسخ الأمر التالي وشغّله من الطرفية مباشرة للتأكد من سرعة الاستجابة.",
-      "يدعم كلاً من الرد الكامل أو التدفق اللحظي عبر stream: true.",
+      "يدعم كلاً من التدفق اللحظي عبر stream: true أو الرد الكامل المباشر.",
     ],
-    code: `curl ${endpoint}/chat/completions \\\n  -H "Authorization: Bearer sk-subsc-YOUR-KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "model": "gpt-6.1-sol",\n    "messages": [{"role": "user", "content": "مرحبا"}],\n    "stream": true\n  }'`,
+    code: `# تجربة نموذج gpt-6.1-sol (مع البث التدفقي Streaming):\ncurl ${endpoint}/chat/completions \\\n  -H "Authorization: Bearer sk-subsc-YOUR-KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "model": "gpt-6.1-sol",\n    "messages": [{"role": "user", "content": "Say hello"}],\n    "stream": true\n  }'\n\n# تجربة نموذج ASTRA:\ncurl ${endpoint}/chat/completions \\\n  -H "Authorization: Bearer sk-subsc-YOUR-KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "model": "astra",\n    "messages": [{"role": "user", "content": "Hello Astra"}],\n    "stream": false\n  }'`,
   },
 ];
 
@@ -111,25 +113,65 @@ function Guide() {
         <h1>
           اربط مرة. <span>وابنِ بلا حدود.</span>
         </h1>
-        <p>متوافق 100% مع OpenAI SDK والبروتوكول القياسي، وجاهز للعمل مع كل أدواتك.</p>
+        <p>متوافق 100% مع OpenAI SDK والبروتوكول القياسي، ويدعم نموذجي <strong>gpt-6.1-sol</strong> و <strong>ASTRA</strong> بكفاءة وسرعة فائقة.</p>
       </div>
 
-      {/* Auto-Installer Banner Hero */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-amber-500/15 via-primary/10 to-transparent border border-amber-500/30 mb-8 flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="space-y-2 text-right">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-500">
-            <Zap size={14} />
-            الربط التلقائي بضغطة زر واحدة (Windows PowerShell)
-          </div>
+      {/* Auto-Installer Banner Hero (Windows & Mac) */}
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-amber-500/15 via-primary/10 to-transparent border border-amber-500/30 mb-8 space-y-4 text-right">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-500">
+          <Zap size={14} />
+          الربط التلقائي بضغطة زر واحدة (Windows & macOS)
+        </div>
+        <div>
           <h3 className="text-lg font-bold text-foreground">
-            لا تريد تعديل الإعدادات يدوياً؟ اترك السكربت يتكفل بالباقي!
+            لا تريد تعديل الإعدادات يدوياً؟ السكربت التلقائي يقوم بكل شيء!
           </h3>
-          <p className="text-sm text-muted-foreground">
-            انسخ الأمر التالي وشغّله في PowerShell؛ سيطلب منك المفتاح ويعدل ملفات Cursor وCline وWindsurf وQoder وOpenCode في القرص C: تلقائياً.
+          <p className="text-sm text-muted-foreground mt-1">
+            يقوم بطلب مفتاحك وتعديل ملفات الإعدادات تلقائياً في Cursor وCline وWindsurf وQoder وOpenCode مع إضافة نموذجي <strong>gpt-6.1-sol</strong> و <strong>ASTRA</strong> وفحص سرعة الاتصال.
           </p>
         </div>
-        <div className="w-full md:w-auto min-w-[320px]">
-          <CopyBox value="irm https://ai.subsc.tech/setup.ps1 | iex" label="أمر PowerShell التلقائي" />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-2" dir="ltr">
+          {/* Windows PowerShell */}
+          <div className="p-4 rounded-xl bg-card/80 border border-border space-y-2 text-left">
+            <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+              <Monitor size={15} className="text-cyan-500" />
+              <span>Windows (PowerShell)</span>
+            </div>
+            <CopyBox value="irm https://ai.subsc.tech/setup.ps1 | iex" label="Windows PowerShell" />
+          </div>
+
+          {/* macOS / Linux */}
+          <div className="p-4 rounded-xl bg-card/80 border border-border space-y-2 text-left">
+            <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+              <Apple size={15} className="text-emerald-500" />
+              <span>macOS & Linux (Terminal)</span>
+            </div>
+            <CopyBox value="curl -sSL https://ai.subsc.tech/setup.sh | bash" label="macOS / Linux Terminal" />
+          </div>
+        </div>
+      </div>
+
+      {/* Models Reference Pill Banner */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 text-right">
+        <div className="p-4 rounded-xl bg-card border border-border space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-xs px-2 py-0.5 rounded bg-primary/10 text-primary font-bold">gpt-6.1-sol</span>
+            <span className="text-xs font-bold text-foreground">النموذج البرمجي الأقوى</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            مخصص للمهام البرمجية العميقة، والوكلاء الذكية (Cline / Cursor / Roo Code)، وتوليد المشاريع الكاملة بدقة متناهية.
+          </p>
+        </div>
+
+        <div className="p-4 rounded-xl bg-card border border-border space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-xs px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 font-bold">astra (أو gpt-6)</span>
+            <span className="text-xs font-bold text-foreground">نموذج الاستجابة السريعة</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            مخصص للسرعة الفائقة، وتوليد الأفكار، والأكواد الخفيفة، والمحادثات المباشرة بأقل زمن استجابة.
+          </p>
         </div>
       </div>
 
@@ -169,7 +211,7 @@ function Guide() {
           </ol>
           <div className="guide-note">
             <Check size={16} />
-            نفس الواجهة القياسية التي تعرفها، بدون تغيير أدواتك وسرعة فائقة بدون تقطيع.
+            يدعم كلا النموذجين (gpt-6.1-sol و ASTRA) وبث تدفقي مستقر بدون تقطيع.
           </div>
         </div>
         <div className="code-panel">
@@ -178,8 +220,8 @@ function Guide() {
             <span dir="ltr">
               {guide.name.includes("Python")
                 ? "getting_started.py"
-                : guide.name.includes("PowerShell")
-                ? "auto_setup.ps1"
+                : guide.name.includes("التثبيت")
+                ? "auto_setup"
                 : "connection.config"}
             </span>
             <Terminal size={15} />
