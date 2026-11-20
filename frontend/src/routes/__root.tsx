@@ -47,34 +47,65 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
+
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
+
+    // Auto-heal Vite chunk load errors by refreshing latest assets
+    const msg = error instanceof Error ? error.message : String(error);
+    if (
+      msg.includes("dynamically imported module") ||
+      msg.includes("Failed to fetch") ||
+      msg.includes("Loading chunk") ||
+      msg.includes("Failed to load")
+    ) {
+      const lastReload = typeof sessionStorage !== "undefined" ? sessionStorage.getItem("subsc_chunk_reload") : null;
+      const now = Date.now();
+      if (!lastReload || now - Number(lastReload) > 10000) {
+        if (typeof sessionStorage !== "undefined") {
+          sessionStorage.setItem("subsc_chunk_reload", String(now));
+        }
+        window.location.reload();
+      }
+    }
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+    <div className="flex min-h-screen items-center justify-center bg-background px-4" dir="rtl">
+      <div className="max-w-md text-center p-8 rounded-2xl bg-card border border-border shadow-xl space-y-4">
+        <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-refresh-cw">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+            <path d="M21 3v5h-5"/>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+            <path d="M8 16H3v5"/>
+          </svg>
+        </div>
+        <h1 className="text-xl font-bold tracking-tight text-foreground">
+          جارٍ تحديث الصفحة والبيانات
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+        <p className="text-sm text-muted-foreground">
+          تم تحديث النظام إلى إصدار جديد، اضغط على الزر أدناه لإعادة تحميل الصفحة وعرض أحدث نسخة فوراً.
         </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <div className="pt-2 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
-              router.invalidate();
-              reset();
+              if (typeof window !== "undefined") {
+                window.location.reload();
+              } else {
+                router.invalidate();
+                reset();
+              }
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition-all hover:bg-primary/90 shadow-md"
           >
-            Try again
+            تحديث وإعادة تحميل الصفحة ⚡
           </button>
           <a
             href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            className="inline-flex items-center justify-center rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
-            Go home
+            الصفحة الرئيسية
           </a>
         </div>
       </div>
@@ -137,6 +168,21 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  // Auto-reload on Vite chunk preload errors (happens when new build is deployed)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handlePreloadError = () => {
+      const lastReload = sessionStorage.getItem("subsc_chunk_reload");
+      const now = Date.now();
+      if (!lastReload || now - Number(lastReload) > 10000) {
+        sessionStorage.setItem("subsc_chunk_reload", String(now));
+        window.location.reload();
+      }
+    };
+    window.addEventListener("vite:preloadError", handlePreloadError);
+    return () => window.removeEventListener("vite:preloadError", handlePreloadError);
+  }, []);
 
   // Bulletproof client-side watermark suppression for Clerk
   useEffect(() => {

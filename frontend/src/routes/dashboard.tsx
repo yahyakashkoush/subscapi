@@ -24,6 +24,39 @@ import { CopyBox, Checkout } from "@/components/subsc-controls";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 
+function DashboardErrorFallback({ reset }: { error: unknown; reset: () => void }) {
+  return (
+    <div className="max-w-md mx-auto my-12 p-8 rounded-2xl bg-card border border-border shadow-lg text-center space-y-4" dir="rtl">
+      <div className="w-14 h-14 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+        <RefreshCw size={28} className="animate-spin text-primary" />
+      </div>
+      <h2 className="text-xl font-bold">تحديث بيانات لوحة التحكم</h2>
+      <p className="text-sm text-muted-foreground">
+        تم تحديث بيانات سيرفرات SubscAPI. اضغط أدناه لإعادة تحديث الصفحة ومفتاحك فوراً.
+      </p>
+      <div className="pt-2 flex flex-col sm:flex-row gap-2 justify-center">
+        <Button
+          variant="premium"
+          size="lg"
+          onClick={() => {
+            if (typeof window !== "undefined") {
+              window.location.reload();
+            } else {
+              reset();
+            }
+          }}
+        >
+          <RefreshCw size={16} />
+          إعادة تحميل الصفحة الآن
+        </Button>
+        <Button variant="outline" asChild>
+          <Link to="/">العودة للرئيسية</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/dashboard")({
   head: () =>
     metadata(
@@ -31,6 +64,7 @@ export const Route = createFileRoute("/dashboard")({
       "إدارة اشتراك SubscAPI ومفتاح الذكاء الاصطناعي ومتابعة الرصيد والاستهلاك."
     ),
   component: Dashboard,
+  errorComponent: DashboardErrorFallback,
 });
 
 type SubscriptionData = {
@@ -348,9 +382,10 @@ function Dashboard() {
                 </div>
                 <pre className="p-2 rounded bg-muted/50 overflow-x-auto text-[11px] text-muted-foreground">
 {`Provider: OpenAI Compatible
-Base URL: ${subData.baseUrl}
-API Key:  ${subData.clientKey}
-Model ID: gpt-6.1-sol`}
+Base URL: ${subData?.baseUrl || "https://ai.subsc.tech/v1"}
+Model Source URL: ${subData?.baseUrl || "https://ai.subsc.tech/v1"}/models
+API Key:  ${subData?.clientKey || "sk-subsc-..."}
+Models:   gpt-6.1-sol (اضغط Enter بعد كتابتها)`}
                 </pre>
               </div>
 

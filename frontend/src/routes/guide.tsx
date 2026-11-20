@@ -48,11 +48,12 @@ const guides = [
     steps: [
       "افتح إعدادات إضافة Cline أو Roo Code في VS Code.",
       "اختر OpenAI Compatible من قائمة API Provider.",
-      "في خانة Model Source URL ضع: https://ai.subsc.tech/v1/models ليجلب النماذج تلقائياً.",
-      "في خانة Models اكتب gpt-6.1-sol أو astra ثم اضغط Enter في الكيبورد لتثبيتها.",
-      "الصق مفتاحك sk-subsc-YOUR-KEY وفعّل streaming و tools.",
+      "في خانة Base URL ضع: https://ai.subsc.tech/v1",
+      "في خانة Model Source URL (الأسهل): ضع https://ai.subsc.tech/v1/models ليجلب كافة النماذج تلقائياً وبدون أي كتابة يدوية.",
+      "أو في خانة Models اكتب gpt-6.1-sol ثم اضغط Enter (Return) في الكيبورد لتثبيت النموذج واختفاء التنبيه الأحمر.",
+      "الصق مفتاحك sk-subsc-YOUR-KEY في خانة API Key وفعّل streaming و tools.",
     ],
-    code: `API Provider: OpenAI Compatible\nBase URL: ${endpoint}\nModel Source URL: ${endpoint}/models\nModels: gpt-6.1-sol, astra\nAPI Key: sk-subsc-YOUR-KEY`,
+    code: `API Provider: OpenAI Compatible\nBase URL: ${endpoint}\nModel Source URL: ${endpoint}/models\nModels: gpt-6.1-sol (اضغط Enter بعد كتابتها)\nAPI Key: sk-subsc-YOUR-KEY`,
   },
   {
     name: "Qoder",
