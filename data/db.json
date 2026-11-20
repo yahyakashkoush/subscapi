@@ -975,11 +975,11 @@
       "customerContact": "yahyakashkoushhh@gmail.com",
       "status": "active",
       "initialBalance": 50,
-      "remainingBalance": 49.9925,
-      "totalRequests": 3,
-      "totalTokens": 12985,
+      "remainingBalance": 49.99,
+      "totalRequests": 4,
+      "totalTokens": 13041,
       "createdAt": "2026-11-19T18:23:12.549Z",
-      "lastUsedAt": "2026-11-19T18:26:16.009Z"
+      "lastUsedAt": "2026-11-20T15:22:07.065Z"
     },
     {
       "id": "cli_test_100u",
