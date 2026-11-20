@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =====================================================================
 # SubscAPI - One-Click Automatic IDE & Environment Configurator (macOS / Linux)
-# Supports: Cursor, Windsurf, Cline, Roo Code, Qoder, OpenCode, VS Code, Global Env
+# Supports: Cursor, Windsurf, Cline, Roo Code, Codex, Qoder, OpenCode, VS Code, Global Env
 # Models:   gpt-6.1-sol & astra
 # Base URL: https://ai.subsc.tech/v1
 # =====================================================================
@@ -66,15 +66,16 @@ echo "  [3] Roo Code (VS Code Extension)"
 echo "  [4] Windsurf (Library/Application Support/Windsurf)"
 echo "  [5] Qoder (~/.qoder & Application Support)"
 echo "  [6] OpenCode / Open Code Interpreter (~/.opencode)"
-echo "  [7] VS Code (Continue Extension & settings.json)"
-echo "  [8] متغيرات النظام العامة (Environment Variables in ~/.zshrc أو ~/.bashrc)"
-echo -e "  \033[1;33m[9] 🚀 تهيئة جميع البرامج السابقة دفعة واحدة (ALL OF THE ABOVE - ينصح به)\033[0m"
+echo "  [7] Codex (OpenAI Codex CLI - ~/.codex/config.toml & auth.json)"
+echo "  [8] VS Code (Continue Extension & settings.json)"
+echo "  [9] متغيرات النظام العامة (Environment Variables in ~/.zshrc أو ~/.bashrc)"
+echo -e "  \033[1;33m[10] 🚀 تهيئة جميع البرامج السابقة دفعة واحدة (ALL OF THE ABOVE - ينصح به)\033[0m"
 echo ""
 
 CHOICE=""
-read_terminal "اكتب رقم اختيارك [1-9] (الافتراضي: 9): " CHOICE_INPUT
+read_terminal "اكتب رقم اختيارك [1-10] (الافتراضي: 10): " CHOICE_INPUT
 CHOICE=$(echo "$CHOICE_INPUT" | tr -d '[:space:]')
-CHOICE="${CHOICE:-9}"
+CHOICE="${CHOICE:-10}"
 
 # Detect OS & Paths
 OS_TYPE="$(uname -s)"
@@ -177,7 +178,43 @@ configure_opencode() {
   echo -e "\033[1;32m    [OK] تم ضبط إعدادات OpenCode بنجاح.\033[0m"
 }
 
-# 7. Continue Extension
+# 7. Codex (OpenAI Codex CLI & Desktop)
+configure_codex() {
+  echo -e "\033[1;34m[*] تهيئة Codex CLI (~/.codex)...\033[0m"
+  mkdir -p "$HOME/.codex"
+  cat <<EOF > "$HOME/.codex/config.toml"
+model = "gpt-6.1-sol"
+model_provider = "subscapi"
+
+[model_providers.subscapi]
+name = "SubscAPI Gateway"
+base_url = "https://ai.subsc.tech/v1"
+wire_api = "responses"
+env_key = "OPENAI_API_KEY"
+EOF
+
+  cat <<EOF > "$HOME/.codex/auth.json"
+{
+  "OPENAI_API_KEY": "$SUBSC_KEY"
+}
+EOF
+
+  cat <<EOF > "$HOME/.codex/config.json"
+{
+  "model": "gpt-6.1-sol",
+  "model_provider": "subscapi",
+  "base_url": "https://ai.subsc.tech/v1",
+  "api_key": "$SUBSC_KEY",
+  "openai_api_base": "https://ai.subsc.tech/v1",
+  "openai_api_key": "$SUBSC_KEY",
+  "wire_api": "responses",
+  "stream": true
+}
+EOF
+  echo -e "\033[1;32m    [OK] تم ضبط إعدادات Codex بنجاح (~/.codex/config.toml و auth.json).\033[0m"
+}
+
+# 8. Continue Extension
 configure_continue() {
   echo -e "\033[1;34m[*] تهيئة إضافة Continue...\033[0m"
   local cont_path="$HOME/.continue/config.json"
@@ -199,7 +236,7 @@ with open(p, 'w') as f: json.dump(data, f, indent=2)
   echo -e "\033[1;32m    [OK] تم ضبط إضافة Continue بنجاح.\033[0m"
 }
 
-# 8. Environment Variables
+# 9. Environment Variables
 configure_env() {
   echo -e "\033[1;34m[*] حفظ متغيرات البيئة الدائمة...\033[0m"
   SHELL_RC="$HOME/.bashrc"
@@ -224,8 +261,9 @@ case "$CHOICE" in
   4) configure_windsurf ;;
   5) configure_qoder ;;
   6) configure_opencode ;;
-  7) configure_continue ;;
-  8) configure_env ;;
+  7) configure_codex ;;
+  8) configure_continue ;;
+  9) configure_env ;;
   *)
     configure_cursor
     configure_cline
@@ -233,6 +271,7 @@ case "$CHOICE" in
     configure_windsurf
     configure_qoder
     configure_opencode
+    configure_codex
     configure_continue
     configure_env
     ;;

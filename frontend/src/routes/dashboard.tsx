@@ -326,7 +326,7 @@ function Dashboard() {
               إعدادات الربط السريعة مع أدواتك:
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono" dir="ltr">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono" dir="ltr">
               {/* Cursor Config */}
               <div className="p-3 rounded-xl bg-background border border-border space-y-2">
                 <div className="font-bold text-foreground font-sans flex items-center gap-1.5" dir="rtl">
@@ -351,6 +351,20 @@ function Dashboard() {
 Base URL: ${subData.baseUrl}
 API Key:  ${subData.clientKey}
 Model ID: gpt-6.1-sol`}
+                </pre>
+              </div>
+
+              {/* Codex Config */}
+              <div className="p-3 rounded-xl bg-background border border-border space-y-2">
+                <div className="font-bold text-foreground font-sans flex items-center gap-1.5" dir="rtl">
+                  <Code2 size={14} className="text-primary" />
+                  إعدادات Codex (~/.codex):
+                </div>
+                <pre className="p-2 rounded bg-muted/50 overflow-x-auto text-[11px] text-muted-foreground">
+{`# config.toml
+base_url = "${subData.baseUrl}"
+wire_api = "responses"
+model = "gpt-6.1-sol"`}
                 </pre>
               </div>
             </div>

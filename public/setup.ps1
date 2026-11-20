@@ -71,14 +71,15 @@ Write-Host "  [3] Roo Code (VS Code Extension)" -ForegroundColor White
 Write-Host "  [4] Windsurf (AppData\Roaming\Windsurf)" -ForegroundColor White
 Write-Host "  [5] Qoder (AppData\Roaming\Qoder & ~/.qoder)" -ForegroundColor White
 Write-Host "  [6] OpenCode / Open Code Interpreter (~/.opencode)" -ForegroundColor White
-Write-Host "  [7] VS Code (Continue Extension & settings.json)" -ForegroundColor White
-Write-Host "  [8] متغيرات النظام العامة (Global System & User Env: OPENAI_BASE_URL, OPENAI_API_KEY)" -ForegroundColor White
-Write-Host "  [9] 🚀 تهيئة جميع البرامج السابقة دفعة واحدة (ALL OF THE ABOVE - ينصح به)" -ForegroundColor Yellow
+Write-Host "  [7] Codex (OpenAI Codex CLI - %USERPROFILE%\.codex\config.toml & auth.json)" -ForegroundColor White
+Write-Host "  [8] VS Code (Continue Extension & settings.json)" -ForegroundColor White
+Write-Host "  [9] متغيرات النظام العامة (Global System & User Env: OPENAI_BASE_URL, OPENAI_API_KEY)" -ForegroundColor White
+Write-Host "  [10] 🚀 تهيئة جميع البرامج السابقة دفعة واحدة (ALL OF THE ABOVE - ينصح به)" -ForegroundColor Yellow
 Write-Host ""
 
-$choice = Read-Host "اكتب رقم اختيارك [1-9] (Default: 9)"
+$choice = Read-Host "اكتب رقم اختيارك [1-10] (Default: 10)"
 if ([string]::IsNullOrWhiteSpace($choice)) {
-    $choice = "9"
+    $choice = "10"
 }
 
 # Helper: Read JSON file safely
@@ -214,7 +215,49 @@ function Configure-OpenCode {
     Write-Host "    [OK] تم حفظ إعدادات OpenCode بنجاح في: $opencodeDir\config.json" -ForegroundColor Green
 }
 
-# 7. Configure Continue Extension
+# 7. Configure Codex (OpenAI Codex CLI & Desktop)
+function Configure-Codex {
+    Write-Host "[*] جارٍ تهيئة Codex (config.toml & auth.json)..." -ForegroundColor Cyan
+    $codexDir = Join-Path $env:USERPROFILE ".codex"
+    if (-not (Test-Path $codexDir)) {
+        New-Item -Path $codexDir -ItemType Directory -Force | Out-Null
+    }
+
+    $tomlContent = @"
+model = "gpt-6.1-sol"
+model_provider = "subscapi"
+
+[model_providers.subscapi]
+name = "SubscAPI Gateway"
+base_url = "https://ai.subsc.tech/v1"
+wire_api = "responses"
+env_key = "OPENAI_API_KEY"
+"@
+    Set-Content -Path (Join-Path $codexDir "config.toml") -Value $tomlContent -Encoding UTF8
+
+    $authContent = @"
+{
+  "OPENAI_API_KEY": "$subscKey"
+}
+"@
+    Set-Content -Path (Join-Path $codexDir "auth.json") -Value $authContent -Encoding UTF8
+
+    $jsonConfig = [PSCustomObject]@{
+        model = "gpt-6.1-sol"
+        model_provider = "subscapi"
+        base_url = "https://ai.subsc.tech/v1"
+        api_key = $subscKey
+        openai_api_base = "https://ai.subsc.tech/v1"
+        openai_api_key = $subscKey
+        wire_api = "responses"
+        stream = $true
+    }
+    Save-JsonFileContent (Join-Path $codexDir "config.json") $jsonConfig
+
+    Write-Host "    [OK] تم حفظ إعدادات Codex بنجاح في: $codexDir\config.toml و auth.json" -ForegroundColor Green
+}
+
+# 8. Configure Continue Extension
 function Configure-Continue {
     Write-Host "[*] جارٍ تهيئة إضافة Continue..." -ForegroundColor Cyan
     $continueDir = Join-Path $env:USERPROFILE ".continue"
@@ -239,7 +282,7 @@ function Configure-Continue {
     Write-Host "    [OK] تم ضبط إضافة Continue بنجاح!" -ForegroundColor Green
 }
 
-# 8. Configure System / User Environment Variables
+# 9. Configure System / User Environment Variables
 function Configure-Environment {
     Write-Host "[*] جارٍ تعيين متغيرات البيئة الدائمة على نظام Windows..." -ForegroundColor Cyan
     
@@ -266,8 +309,9 @@ switch ($choice) {
     "4" { Configure-Windsurf }
     "5" { Configure-Qoder }
     "6" { Configure-OpenCode }
-    "7" { Configure-Continue }
-    "8" { Configure-Environment }
+    "7" { Configure-Codex }
+    "8" { Configure-Continue }
+    "9" { Configure-Environment }
     default {
         Configure-Cursor
         Configure-Cline
@@ -275,6 +319,7 @@ switch ($choice) {
         Configure-Windsurf
         Configure-Qoder
         Configure-OpenCode
+        Configure-Codex
         Configure-Continue
         Configure-Environment
     }

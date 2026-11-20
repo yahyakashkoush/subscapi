@@ -76,6 +76,18 @@ const guides = [
     code: `openai_api_base="${endpoint}"\nopenai_api_key="sk-subsc-YOUR-KEY"\nmodel="gpt-6.1-sol"\n# أو للنموذج السريع:\n# model="astra"`,
   },
   {
+    name: "Codex (CLI & Desktop)",
+    icon: Terminal,
+    title: "أداة Codex الرسمية. ربط فوري عبر ملف config.toml أو auth.json.",
+    steps: [
+      "مسار ملف الإعداد: للماك ~/.codex/config.toml وللويندوز %USERPROFILE%\\.codex\\config.toml.",
+      "عيّن wire_api إلى 'responses' لضمان أعلى سرعة لمعالجة طلبات الوكيل.",
+      "أضف مفتاحك في ملف ~/.codex/auth.json أو في متغيرات النظام OPENAI_API_KEY.",
+      "يمكنك أيضاً التهيئة التلقائية بضغطة زر عبر أمر PowerShell أو Terminal!",
+    ],
+    code: `# ملف الإعداد: ~/.codex/config.toml (ماك) أو %USERPROFILE%\\.codex\\config.toml (ويندوز)\nmodel = "gpt-6.1-sol"\nmodel_provider = "subscapi"\n\n[model_providers.subscapi]\nname = "SubscAPI Gateway"\nbase_url = "${endpoint}"\nwire_api = "responses"\nenv_key = "OPENAI_API_KEY"\n\n# ملف المفتاح: ~/.codex/auth.json\n{\n  "OPENAI_API_KEY": "sk-subsc-YOUR-KEY"\n}`,
+  },
+  {
     name: "Python SDK",
     icon: Code2,
     title: "من الفكرة إلى الكود مع OpenAI SDK الرسمي.",
