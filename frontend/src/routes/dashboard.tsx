@@ -304,7 +304,7 @@ function Dashboard() {
             <div className="p-4 rounded-xl bg-background border border-border space-y-2">
               <div className="flex justify-between items-center text-sm">
                 <span className="font-medium text-muted-foreground">رصيد الاستخدام المتبقي:</span>
-                <span className="font-bold font-mono text-primary text-base">
+                <span dir="ltr" className="font-bold font-mono text-primary text-base inline-block">
                   ${(Number(subData.remainingBalance) || 0).toFixed(2)} / ${(Number(subData.initialBalance) || 0).toFixed(2)} USD
                 </span>
               </div>
@@ -315,7 +315,7 @@ function Dashboard() {
                 />
               </div>
               <div className="flex justify-between text-[11px] text-muted-foreground">
-                <span>المستهلك: ${(Number(subData.usedBalance) || 0).toFixed(2)}</span>
+                <span dir="ltr" className="inline-block">المستهلك: ${(Number(subData.usedBalance) || 0).toFixed(3)}</span>
                 <span>المتبقي: {Number(subData.percentageRemaining) || 0}%</span>
               </div>
             </div>

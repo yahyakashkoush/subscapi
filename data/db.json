@@ -266,12 +266,12 @@
       "balance": 250,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "disabled",
+      "status": "assigned",
       "label": "GPT gpt-6.1-sol 250$ 30D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null,
-      "disabledReason": "upstream_inactive"
+      "assignedTo": "Seif Hekal",
+      "assignedAt": "2026-11-20T20:30:08.159Z"
     },
     {
       "id": "inv_4d1645f0c92f",
@@ -461,12 +461,12 @@
       "balance": 50,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "disabled",
+      "status": "assigned",
       "label": "GPT gpt-6.1-sol 50 7D",
       "addedAt": "2026-11-19T16:01:05.370901+00:00",
       "lastChecked": "2026-11-19T16:01:05.370901+00:00",
-      "assignedTo": null,
-      "disabledReason": "upstream_inactive"
+      "assignedTo": "yahya emad",
+      "assignedAt": "2026-11-20T16:52:22.791Z"
     },
     {
       "id": "inv_55aa5a7b51d4",
@@ -1010,6 +1010,46 @@
   ],
   "clientKeys": [
     {
+      "id": "cli_079b04616a2f",
+      "clientKey": "sk-subsc-250u-5be3e106acd392f858786ec3ddaa6905",
+      "inventoryKeyId": "inv_4e0984c80f48",
+      "tier": 250,
+      "model": "gpt-6.1-sol",
+      "customerName": "Seif Hekal",
+      "customerContact": "yahyaemadkashkoush@gmail.com",
+      "userId": "user_3MO0s9wNmOCe1GzyL7OhTxzcpY8",
+      "clerkUserId": "user_3MO0s9wNmOCe1GzyL7OhTxzcpY8",
+      "status": "active",
+      "initialBalance": 250,
+      "remainingBalance": 250,
+      "totalRequests": 0,
+      "totalTokens": 0,
+      "createdAt": "2026-11-20T20:30:08.159Z",
+      "lastUsedAt": null,
+      "paidVia": "instapay_manual",
+      "paymentRef": "123456789"
+    },
+    {
+      "id": "cli_768deefcfdea",
+      "clientKey": "sk-subsc-50u-0a66c34a5356c54b35c5260fc4ede3ab",
+      "inventoryKeyId": "inv_55aa5a7b51d4",
+      "tier": 50,
+      "model": "gpt-6.1-sol",
+      "customerName": "yahya emad",
+      "customerContact": "yahyaemad999@gmail.com",
+      "userId": "user_3MKhlqgfC1V4EpGoNg2YbmVAKUE",
+      "clerkUserId": "user_3MKhlqgfC1V4EpGoNg2YbmVAKUE",
+      "status": "active",
+      "initialBalance": 50,
+      "remainingBalance": 49.945,
+      "totalRequests": 22,
+      "totalTokens": 2561,
+      "createdAt": "2026-11-20T16:52:22.791Z",
+      "lastUsedAt": "2026-11-20T23:33:46.569Z",
+      "paidVia": "instapay_manual",
+      "paymentRef": "sssz"
+    },
+    {
       "id": "cli_7b1a144a162b",
       "clientKey": "sk-subsc-50u-10fbe390209e9d80a4c608200db66bc8",
       "inventoryKeyId": "inv_55aa5a7b51d4",
@@ -1019,11 +1059,11 @@
       "customerContact": "yahyakashkoushhh@gmail.com",
       "status": "active",
       "initialBalance": 50,
-      "remainingBalance": 49.99,
-      "totalRequests": 4,
-      "totalTokens": 13041,
+      "remainingBalance": 49.95,
+      "totalRequests": 20,
+      "totalTokens": 156940,
       "createdAt": "2026-11-19T18:23:12.549Z",
-      "lastUsedAt": "2026-11-20T15:22:07.065Z"
+      "lastUsedAt": "2026-11-20T21:18:17.271Z"
     },
     {
       "id": "cli_test_100u",
@@ -1038,12 +1078,12 @@
       "totalRequests": 4,
       "totalTokens": 5798,
       "lastUsedAt": "2026-11-19T16:57:42.140Z",
-      "inventoryKeyId": "inv_55aa5a7b51d4"
+      "inventoryKeyId": "inv_4e0984c80f48"
     },
     {
       "id": "cli_d4921ce9fd89",
       "clientKey": "sk-subsc-500u-16e06cef4a982b8ff9333e5a87a33725",
-      "inventoryKeyId": "inv_55aa5a7b51d4",
+      "inventoryKeyId": "inv_4e0984c80f48",
       "tier": 500,
       "customerName": "مطور تجريبي",
       "customerContact": "test@subscapi.com",
@@ -1059,7 +1099,7 @@
     {
       "id": "cli_036c462e433a",
       "clientKey": "sk-subsc-100u-97e041c0792252226f324fa60cdc4e40",
-      "inventoryKeyId": "inv_55aa5a7b51d4",
+      "inventoryKeyId": "inv_4e0984c80f48",
       "tier": 100,
       "customerName": "يحيى عماد",
       "customerContact": "",
@@ -1075,7 +1115,7 @@
     {
       "id": "cli_096c02f3308c",
       "clientKey": "sk-subsc-100u-d7b86f773103fd64cdbe93da3ea0f90b",
-      "inventoryKeyId": "inv_55aa5a7b51d4",
+      "inventoryKeyId": "inv_4e0984c80f48",
       "tier": 100,
       "customerName": "يحيى عماد",
       "customerContact": "@yahya_telegram",
@@ -1094,12 +1134,12 @@
       "id": "pkg_50",
       "tier": 50,
       "name": "باقة الانطلاق 50$",
-      "nameEn": "Starter 50$",
+      "nameEn": "50$ Tier",
       "duration": "7 أيام (7D)",
-      "badge": "أسرع تفعيل",
+      "badge": "",
       "amount": 50,
-      "priceUSD": 50,
-      "priceEGP": 2700,
+      "priceUSD": 10,
+      "priceEGP": 500,
       "description": "رصيد 50$ كامل مخصص للأدوات وتطوير المشاريع الصغيرة والسريعة.",
       "models": [
         "GPT ASTRA",
@@ -1117,12 +1157,12 @@
       "id": "pkg_100",
       "tier": 100,
       "name": "باقة المحترفين 100$",
-      "nameEn": "Pro 100$",
+      "nameEn": "100$ Tier",
       "duration": "30 يوم (30D)",
-      "badge": "الأكثر طلباً ⭐",
+      "badge": "",
       "amount": 100,
-      "priceUSD": 100,
-      "priceEGP": 5400,
+      "priceUSD": 15,
+      "priceEGP": 750,
       "description": "رصيد 100$ كامل لدعم إنجاز المشروعات البرمجية والعمل اليومي المستمر.",
       "models": [
         "GPT ASTRA",
@@ -1167,7 +1207,55 @@
       "email": "yahyaemadkashkoush@gmail.com",
       "password": "anypassword",
       "role": "admin",
-      "createdAt": "2026-11-19T17:36:39.099Z"
+      "createdAt": "2026-11-19T17:36:39.099Z",
+      "subscription": {
+        "status": "active",
+        "tier": 250,
+        "model": "gpt-6.1-sol",
+        "clientKey": "sk-subsc-250u-5be3e106acd392f858786ec3ddaa6905",
+        "initialBalance": 250,
+        "remainingBalance": 250,
+        "paidVia": "instapay_manual",
+        "activatedAt": "2026-11-20T20:30:08.159Z"
+      }
+    },
+    {
+      "id": "user_3MKhlqgfC1V4EpGoNg2YbmVAKUE",
+      "clerkUserId": "user_3MKhlqgfC1V4EpGoNg2YbmVAKUE",
+      "email": "yahyaemad999@gmail.com",
+      "name": "yahya emad",
+      "createdAt": "2026-11-20T16:52:15.003Z",
+      "subscription": {
+        "status": "active",
+        "tier": 50,
+        "model": "gpt-6.1-sol",
+        "clientKey": "sk-subsc-50u-0a66c34a5356c54b35c5260fc4ede3ab",
+        "initialBalance": 50,
+        "remainingBalance": 49.945,
+        "paidVia": "instapay_manual",
+        "paymentRef": "sssz",
+        "activatedAt": "2026-11-20T16:52:22.791Z",
+        "usedBalance": 0.055,
+        "lastUsedAt": "2026-11-20T23:33:46.569Z"
+      }
+    },
+    {
+      "id": "user_3MO0s9wNmOCe1GzyL7OhTxzcpY8",
+      "clerkUserId": "user_3MO0s9wNmOCe1GzyL7OhTxzcpY8",
+      "email": "seifhekal7@gmail.com",
+      "name": "Seif Hekal",
+      "createdAt": "2026-11-20T20:29:09.169Z",
+      "subscription": {
+        "status": "active",
+        "tier": 250,
+        "model": "gpt-6.1-sol",
+        "clientKey": "sk-subsc-250u-5be3e106acd392f858786ec3ddaa6905",
+        "initialBalance": 250,
+        "remainingBalance": 250,
+        "paidVia": "instapay_manual",
+        "paymentRef": "123456789",
+        "activatedAt": "2026-11-20T20:30:08.159Z"
+      }
     }
   ],
   "sessions": {
@@ -1178,5 +1266,43 @@
       "isAdmin": true,
       "createdAt": 1795109799099
     }
-  }
+  },
+  "orders": [
+    {
+      "id": "ORD-INSTA-mwpfmmk1-183a",
+      "type": "instapay_manual",
+      "tier": 250,
+      "model": "GPT ASTRA",
+      "amountUSD": 250,
+      "amountEGP": 13500,
+      "customerName": "Seif Hekal",
+      "customerEmail": "seifhekal7@gmail.com",
+      "clerkUserId": "user_3MO0s9wNmOCe1GzyL7OhTxzcpY8",
+      "senderName": "Seif Hekal ",
+      "senderPhone": "01092834533",
+      "transactionRef": "123456789",
+      "notes": "",
+      "status": "completed",
+      "createdAt": "2026-11-20T20:29:09.169Z",
+      "approvedAt": "2026-11-20T20:30:08.159Z"
+    },
+    {
+      "id": "ORD-INSTA-mwp7vorf-d1a1",
+      "type": "instapay_manual",
+      "tier": 50,
+      "model": "GPT ASTRA",
+      "amountUSD": 50,
+      "amountEGP": 2700,
+      "customerName": "yahya emad",
+      "customerEmail": "yahyaemad999@gmail.com",
+      "clerkUserId": "user_3MKhlqgfC1V4EpGoNg2YbmVAKUE",
+      "senderName": "sss",
+      "senderPhone": "sesd",
+      "transactionRef": "sssz",
+      "notes": "",
+      "status": "completed",
+      "createdAt": "2026-11-20T16:52:15.003Z",
+      "approvedAt": "2026-11-20T16:52:22.791Z"
+    }
+  ]
 }
