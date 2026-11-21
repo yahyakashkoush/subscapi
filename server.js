@@ -1169,39 +1169,46 @@ app.post('/api/admin/login', (req, res) => {
 app.get('/api/admin/stats', requireAdmin, (req, res) => {
   const db = readDB();
   
-  const totalStockValue = db.inventory
-    .filter(i => i.status === 'available')
-    .reduce((sum, i) => sum + (Number(i.currentBalance) || Number(i.initialBalance) || 0), 0);
+  const activeMasterEngines = (db.inventory || []).filter(i => i.status === 'available');
+  const totalStockValue = activeMasterEngines.reduce((sum, i) => sum + (Number(i.currentBalance) || Number(i.initialBalance) || 0), 0);
 
-  const totalAssignedValue = db.inventory
+  const totalAssignedValue = (db.inventory || [])
     .filter(i => i.status === 'assigned')
     .reduce((sum, i) => sum + (Number(i.initialBalance) || 0), 0);
 
-  const available100 = db.inventory.filter(i => i.tier === 100 && i.status === 'available').length;
-  const available200 = db.inventory.filter(i => i.tier === 200 && i.status === 'available').length;
-  const available500 = db.inventory.filter(i => i.tier === 500 && i.status === 'available').length;
+  const totalRequests = (db.clientKeys || []).reduce((sum, c) => sum + (c.totalRequests || 0), 0);
+  const totalTokens = (db.clientKeys || []).reduce((sum, c) => sum + (c.totalTokens || 0), 0);
+  const totalDistributedBalance = (db.clientKeys || []).reduce((sum, c) => sum + (c.remainingBalance || 0), 0);
 
-  const totalRequests = db.clientKeys.reduce((sum, c) => sum + (c.totalRequests || 0), 0);
+  const tierCapacities = {
+    50: totalStockValue > 0 ? Math.floor(totalStockValue / 50) : 0,
+    100: totalStockValue > 0 ? Math.floor(totalStockValue / 100) : 0,
+    250: totalStockValue > 0 ? Math.floor(totalStockValue / 250) : 0,
+    500: totalStockValue > 0 ? Math.floor(totalStockValue / 500) : 0
+  };
 
   res.json({
     success: true,
     totalStockValue: Number(totalStockValue.toFixed(2)),
     totalValue: Number(totalStockValue.toFixed(2)),
-    availableKeys: db.inventory.filter(i => i.status === 'available').length,
-    activeClients: db.clientKeys.length,
+    availableKeys: activeMasterEngines.length,
+    masterEnginesCount: activeMasterEngines.length,
+    activeClients: (db.clientKeys || []).filter(c => c.status === 'active').length,
+    totalClients: (db.clientKeys || []).length,
+    totalRequestsServed: totalRequests,
+    totalTokensServed: totalTokens,
+    totalDistributedBalance: Number(totalDistributedBalance.toFixed(2)),
+    stockSummary: tierCapacities,
     stats: {
       totalStockValue: Number(totalStockValue.toFixed(2)),
       totalAssignedValue: Number(totalAssignedValue.toFixed(2)),
       totalInventoryKeys: db.inventory.length,
-      availableKeysCount: db.inventory.filter(i => i.status === 'available').length,
+      availableKeysCount: activeMasterEngines.length,
       assignedKeysCount: db.inventory.filter(i => i.status === 'assigned').length,
-      tierCounts: {
-        100: available100,
-        200: available200,
-        500: available500
-      },
-      totalClients: db.clientKeys.length,
-      totalRequestsServed: totalRequests
+      tierCounts: tierCapacities,
+      totalClients: (db.clientKeys || []).length,
+      totalRequestsServed: totalRequests,
+      totalTokensServed: totalTokens
     }
   });
 });
@@ -1388,6 +1395,144 @@ app.post('/api/admin/clients/toggle/:id', requireAdmin, (req, res) => {
   client.status = client.status === 'active' ? 'suspended' : 'active';
   writeDB(db);
   res.json({ success: true, newStatus: client.status });
+});
+
+// Manually create a new client key from Admin
+app.post('/api/admin/clients', requireAdmin, (req, res) => {
+  try {
+    const { customerName, customerContact, tier, customBalance, model } = req.body;
+    const db = readDB();
+    const numericTier = Number(tier) || 100;
+    const numericBalance = Number(customBalance) || numericTier;
+    const clientKey = generateClientApiKey(numericTier);
+
+    // Pick healthy master engine
+    const availableMasters = (db.inventory || []).filter(i => i.status === 'available');
+    const assignedInv = availableMasters.length > 0 ? availableMasters[Math.floor(Math.random() * availableMasters.length)] : null;
+
+    const newClient = {
+      id: 'cli_' + crypto.randomBytes(6).toString('hex'),
+      clientKey: clientKey,
+      inventoryKeyId: assignedInv ? assignedInv.id : null,
+      tier: numericTier,
+      model: model || 'gpt-6.1-sol',
+      customerName: customerName || 'عميل مخصص',
+      customerContact: customerContact || '',
+      status: 'active',
+      initialBalance: numericBalance,
+      remainingBalance: numericBalance,
+      totalRequests: 0,
+      totalTokens: 0,
+      createdAt: new Date().toISOString(),
+      lastUsedAt: null,
+      paidVia: 'admin_manual'
+    };
+
+    if (!db.clientKeys) db.clientKeys = [];
+    db.clientKeys.unshift(newClient);
+    writeDB(db);
+
+    res.json({ success: true, client: newClient });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Adjust Client Balance
+app.post('/api/admin/clients/:id/adjust-balance', requireAdmin, (req, res) => {
+  try {
+    const { amount, mode } = req.body; // mode: 'add' | 'set'
+    const db = readDB();
+    const client = db.clientKeys.find(c => c.id === req.params.id);
+    if (!client) {
+      return res.status(404).json({ success: false, error: 'العميل غير موجود' });
+    }
+
+    const numericAmount = Number(amount);
+    if (isNaN(numericAmount)) {
+      return res.status(400).json({ success: false, error: 'المبلغ غير صالح' });
+    }
+
+    if (mode === 'add') {
+      client.remainingBalance = Number((client.remainingBalance + numericAmount).toFixed(4));
+    } else {
+      client.remainingBalance = Number(numericAmount.toFixed(4));
+    }
+
+    if (client.remainingBalance > 0 && client.status === 'depleted') {
+      client.status = 'active';
+    }
+
+    writeDB(db);
+    res.json({ success: true, client });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Delete Client Key
+app.delete('/api/admin/clients/:id', requireAdmin, (req, res) => {
+  try {
+    const db = readDB();
+    const idx = db.clientKeys.findIndex(c => c.id === req.params.id);
+    if (idx === -1) {
+      return res.status(404).json({ success: false, error: 'العميل غير موجود' });
+    }
+    const removed = db.clientKeys.splice(idx, 1)[0];
+    writeDB(db);
+    res.json({ success: true, removedId: removed.id });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Ping / Healthcheck Master Engines
+app.post('/api/admin/engines/healthcheck', requireAdmin, async (req, res) => {
+  try {
+    const db = readDB();
+    const availableMasters = db.inventory.filter(i => i.status === 'available');
+    const results = [];
+
+    for (const engine of availableMasters) {
+      const start = Date.now();
+      try {
+        const resp = await fetch('https://api.xingchiapi.com/v1/responses', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${engine.upstreamKey}`,
+            'Content-Type': 'application/json',
+            'User-Agent': 'Cursor/0.45.0'
+          },
+          body: JSON.stringify({
+            model: 'gpt-6.1-sol',
+            input: 'Say ok in 1 word',
+            stream: false
+          }),
+          signal: AbortSignal.timeout(10000)
+        });
+        const latency = Date.now() - start;
+        results.push({
+          id: engine.id,
+          label: engine.label,
+          status: resp.ok ? 'healthy' : 'error',
+          statusCode: resp.status,
+          latencyMs: latency
+        });
+      } catch (err) {
+        results.push({
+          id: engine.id,
+          label: engine.label,
+          status: 'timeout',
+          error: err.message,
+          latencyMs: Date.now() - start
+        });
+      }
+    }
+
+    res.json({ success: true, engines: results });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Settings Get & Update
