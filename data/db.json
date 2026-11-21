@@ -55,8 +55,9 @@
       "balance": 1600,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
-      "addedAt": "2026-11-21T15:15:00.000Z"
+      "status": "disabled",
+      "addedAt": "2026-11-21T15:15:00.000Z",
+      "disabledReason": "upstream_group_balance_depleted"
     },
     {
       "id": "inv_astra_master_2",
@@ -70,8 +71,9 @@
       "balance": 1600,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
-      "addedAt": "2026-11-21T15:15:00.000Z"
+      "status": "disabled",
+      "addedAt": "2026-11-21T15:15:00.000Z",
+      "disabledReason": "upstream_group_balance_depleted"
     },
     {
       "id": "inv_astra_master_3",
@@ -85,8 +87,9 @@
       "balance": 1599.9996,
       "currency": "USD",
       "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
-      "addedAt": "2026-11-21T15:15:00.000Z"
+      "status": "disabled",
+      "addedAt": "2026-11-21T15:15:00.000Z",
+      "disabledReason": "upstream_group_balance_depleted"
     }
   ],
   "clientKeys": [
@@ -113,7 +116,7 @@
     {
       "id": "cli_768deefcfdea",
       "clientKey": "sk-subsc-50u-0a66c34a5356c54b35c5260fc4ede3ab",
-      "inventoryKeyId": "inv_sol_master_1",
+      "inventoryKeyId": "inv_sol_master_2",
       "tier": 50,
       "model": "gpt-6.1-sol",
       "customerName": "yahya emad",
@@ -159,7 +162,7 @@
       "totalRequests": 4,
       "totalTokens": 5798,
       "lastUsedAt": "2026-11-19T16:57:42.140Z",
-      "inventoryKeyId": "inv_sol_master_1"
+      "inventoryKeyId": "inv_sol_master_2"
     },
     {
       "id": "cli_d4921ce9fd89",
@@ -180,7 +183,7 @@
     {
       "id": "cli_036c462e433a",
       "clientKey": "sk-subsc-100u-97e041c0792252226f324fa60cdc4e40",
-      "inventoryKeyId": "inv_sol_master_1",
+      "inventoryKeyId": "inv_sol_master_2",
       "tier": 100,
       "customerName": "يحيى عماد",
       "customerContact": "",
