@@ -297,102 +297,73 @@ app.post('/api/auth/logout', (req, res) => {
 app.get('/api/packages', (req, res) => {
   const db = readDB();
   
-  // Calculate inventory counts per tier and per model
-  const stockCounts = {};
-  const modelStockCounts = {};
-
-  (db.inventory || []).forEach(item => {
-    if (item.status === 'available') {
-      const tierKey = item.tier;
-      stockCounts[tierKey] = (stockCounts[tierKey] || 0) + 1;
-
-      const mKey = `${item.tier}_${(item.model || '').toLowerCase().trim()}`;
-      modelStockCounts[mKey] = (modelStockCounts[mKey] || 0) + 1;
-    }
-  });
+  // Calculate total available upstream master pool balance
+  const activeEngines = (db.inventory || []).filter(i => i.status === 'available');
+  const totalUpstreamBalance = activeEngines.reduce((sum, item) => 
+    sum + (Number(item.currentBalance) || Number(item.initialBalance) || 0), 0
+  );
 
   const packagesList = (db.packages && db.packages.length > 0) ? db.packages : [
-    {
-      id: 'pkg_50',
-      tier: 50,
-      name: 'باقة الانطلاق 50$',
-      nameEn: 'Starter 50$',
-      duration: '7 أيام (7D)',
-      badge: 'أسرع تفعيل',
-      amount: 50,
-      priceUSD: 50,
-      priceEGP: 2700,
-      description: 'رصيد 50$ كامل مخصص للأدوات وتطوير المشاريع الصغيرة والسريعة.',
-      models: ['GPT ASTRA', 'gpt-6.1-sol'],
-      features: [
-        'رصيد استخدام حقيقي بقيمة 50 دولار',
-        'صلاحية استخدام لمدة 7 أيام كاملة',
-        'اختيار النموذج المناسب (ASTRA أو gpt-6.1-sol)',
-        'متوافق مع Cursor وWindsurf وCline وRoo Code',
-        'استجابة فورية بدون تقطيع وسرعة فائقة'
-      ]
-    },
     {
       id: 'pkg_100',
       tier: 100,
       name: 'باقة المحترفين 100$',
       nameEn: 'Pro 100$',
       duration: '30 يوم (30D)',
-      badge: 'الأكثر طلباً ⭐',
+      badge: 'الأكثر شعبية',
       amount: 100,
-      priceUSD: 100,
-      priceEGP: 5400,
-      description: 'رصيد 100$ كامل لدعم إنجاز المشروعات البرمجية والعمل اليومي المستمر.',
-      models: ['GPT ASTRA', 'gpt-6.1-sol'],
-      features: [
-        'رصيد استخدام حقيقي بقيمة 100 دولار',
-        'صلاحية استخدام لمدة 30 يوماً',
-        'اختيار النموذج المناسب (ASTRA أو gpt-6.1-sol)',
-        'سقف استخدام مفتوح ومعدل استدعاءات سريع',
-        'دعم كامل لجميع أدوات التطوير ومكتبات OpenAI'
-      ]
+      priceUSD: 15,
+      priceEGP: 800,
+      description: 'رصيد 100$ كامل لدعم إنجاز المشروعات والعمل البرمجي اليومي المستمر.',
+      models: ['gpt-6.1-sol', 'ASTRA', 'gpt-4o']
     },
     {
       id: 'pkg_250',
       tier: 250,
-      name: 'باقة النخبة والفرق 250$',
+      name: 'باقة النخبة والمطورين 250$',
       nameEn: 'Elite 250$',
       duration: '30 يوم (30D)',
-      badge: 'أعلى أداء وأكبر حصة',
+      badge: 'الأعلى طلباً للفرق',
       amount: 250,
-      priceUSD: 250,
-      priceEGP: 13500,
-      description: 'رصيد 250$ كامل للمطورين المحترفين وفرق العمل والشركات الناشئة.',
-      models: ['GPT ASTRA', 'gpt-6.1-sol'],
-      features: [
-        'رصيد استخدام حقيقي ضخم بقيمة 250 دولار',
-        'صلاحية استخدام لمدة 30 يوماً',
-        'اختيار النموذج المناسب (ASTRA أو gpt-6.1-sol)',
-        'أولوية معالجة قصوى وسرعة استجابة فائقة',
-        'دعم فني مخصص على مدار الساعة'
-      ]
+      priceUSD: 30,
+      priceEGP: 1600,
+      description: 'رصيد 250$ كامل للمطورين المحترفين وفرق العمل والمشاريع الضخمة.',
+      models: ['gpt-6.1-sol', 'ASTRA', 'gpt-4o']
+    },
+    {
+      id: 'pkg_500',
+      tier: 500,
+      name: 'باقة الشركات والمؤسسات 500$',
+      nameEn: 'Enterprise 500$',
+      duration: '30 يوم (30D)',
+      badge: 'أعلى سعة واستقرار',
+      amount: 500,
+      priceUSD: 55,
+      priceEGP: 2950,
+      description: 'رصيد 500$ كامل مخصص للشركات وتوليد كميات هائلة من الأكواد وبناء المنتجات.',
+      models: ['gpt-6.1-sol', 'ASTRA', 'gpt-4o']
     }
   ];
 
   const packagesWithStock = packagesList.map(pkg => {
-    const tierStock = stockCounts[pkg.tier] || 0;
-    const modelDetails = (pkg.models || ['GPT ASTRA', 'gpt-6.1-sol']).map(m => {
-      const count = modelStockCounts[`${pkg.tier}_${m.toLowerCase().trim()}`] || 0;
+    // Capacity = How many plans can be served from the master pool
+    const capacity = totalUpstreamBalance > 0 ? Math.max(1, Math.floor(totalUpstreamBalance / pkg.tier)) : 0;
+    const modelDetails = (pkg.models || ['gpt-6.1-sol', 'ASTRA', 'gpt-4o']).map(m => {
       return {
         id: m,
         name: m,
-        stockCount: count,
-        inStock: count > 0
+        stockCount: capacity,
+        inStock: capacity > 0
       };
     });
 
     return {
       ...pkg,
       amount: pkg.tier,
-      stockCount: tierStock,
-      stock: tierStock,
-      availableStock: tierStock,
-      inStock: tierStock > 0,
+      stockCount: capacity,
+      stock: capacity,
+      availableStock: capacity,
+      inStock: capacity > 0,
       modelDetails: modelDetails
     };
   });
@@ -436,13 +407,16 @@ app.post('/api/subscribe', (req, res) => {
       assignedInv = db.inventory.find(i => i.status === 'available');
     }
 
-    // Mark key as assigned if found
+    // Bind client to an available working master engine
     let inventoryKeyId = null;
     if (assignedInv) {
-      assignedInv.status = 'assigned';
-      assignedInv.assignedTo = customerName || 'عميل جديد';
-      assignedInv.assignedAt = new Date().toISOString();
       inventoryKeyId = assignedInv.id;
+      // Master engines ($1600 pool) remain available to serve multiple clients seamlessly
+      if (Number(assignedInv.tier) < 1000) {
+        assignedInv.status = 'assigned';
+        assignedInv.assignedTo = customerName || 'عميل جديد';
+        assignedInv.assignedAt = new Date().toISOString();
+      }
     }
 
     // Generate new unique client key
