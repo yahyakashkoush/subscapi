@@ -72,6 +72,24 @@ export const packages: PackageItem[] = [
       "دعم فني مخصص على مدار الساعة",
     ],
   },
+  {
+    id: "pkg_500",
+    tier: 500,
+    amount: 500,
+    name: "باقة الشركات والمؤسسات 500$",
+    english: "ENTERPRISE 500$",
+    duration: "صلاحية 30 يوم",
+    badge: "أعلى سعة واستقرار 👑",
+    description: "رصيد 500$ كامل مخصص للشركات وتوليد كميات هائلة من الأكواد وبناء المنتجات.",
+    models: ["GPT ASTRA", "gpt-6.1-sol"],
+    features: [
+      "رصيد استخدام هائل بقيمة 500 دولار",
+      "صلاحية استخدام كاملة لمدة 30 يوماً",
+      "أقصى سرعة تدفق للبيانات بدون أي قيود أو حدود",
+      "قنوات مخصصة تضمن عدم التوقف أثناء أقصى ضغط للعمل",
+      "دعم فني خاص على مدار الساعة وأولوية قصوى",
+    ],
+  },
 ];
 export function price(amount: number, currency: Currency) {
   return (amount * (currency === "EGP" ? EGP_RATE : 1)).toLocaleString("en-US");
