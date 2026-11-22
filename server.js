@@ -1629,8 +1629,9 @@ app.post('/api/admin/engines/healthcheck', requireAdmin, async (req, res) => {
 
     for (const engine of availableMasters) {
       const start = Date.now();
+      const targetBase = (engine.baseUrl || 'https://subsc-engine-test.onrender.com/v1').replace(/\/+$/, '');
       try {
-        const resp = await fetch('https://api.xingchiapi.com/v1/responses', {
+        const resp = await fetch(`${targetBase}/responses`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${engine.upstreamKey}`,

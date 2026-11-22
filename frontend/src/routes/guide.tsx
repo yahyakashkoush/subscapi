@@ -86,7 +86,7 @@ const guides = [
       "يمكنك وضع المفتاح مباشرة داخل experimental_bearer_token أو في ~/.codex/auth.json.",
       "سيرفر السحابة الخاص بنا يدعم بروتوكول responses و streaming بدون تقطيع وبأعلى سرعة استجابة.",
     ],
-    code: `# الإعداد المباشر في ~/.codex/config.toml:\nmodel_provider = "OpenAI"\nmodel = "gpt-6.1-sol"\nreview_model = "gpt-6.1-sol"\nweb_search = "live"\n\n[model_providers.OpenAI]\nname = "OpenAI"\nbase_url = "${endpoint}"\nwire_api = "responses"\nrequires_openai_auth = false\nexperimental_bearer_token = "sk-subsc-YOUR-KEY"\n\n# أو الطريقة القياسية مع auth.json:\n# ~/.codex/auth.json -> {"OPENAI_API_KEY": "sk-subsc-YOUR-KEY"}`,
+    code: `# الإعداد الاحترافي في ~/.codex/config.toml:\nmodel_provider = "OpenAI"\nmodel = "gpt-6.1-sol"\nreview_model = "gpt-6.1-sol"\nweb_search = "live"\ndisable_response_storage = true\nnetwork_access = "enabled"\nwindows_wsl_setup_acknowledged = true\n\n[model_providers.OpenAI]\nname = "OpenAI"\nbase_url = "${endpoint}"\nmodel_catalog_url = "${endpoint}/models"\nwire_api = "responses"\nrequires_openai_auth = false\nexperimental_bearer_token = "sk-subsc-YOUR-KEY"\nhttp_headers = { "x-openai-actor-authorization" = "local-image-extension" }\n\n[features]\napi_key_model_discovery = true\nimage_generation = true\ngoals = true`,
   },
   {
     name: "Python SDK",
