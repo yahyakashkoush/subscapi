@@ -766,7 +766,14 @@ async def responses_stream_generator(chat_request: ChatRequest, session_data: di
                             "content_index": 0,
                             "delta": content_piece
                         }
+                        delta_event_out = {
+                            "type": "response.output_text.delta",
+                            "output_index": 0,
+                            "content_index": 0,
+                            "delta": content_piece
+                        }
                         yield f"event: response.text.delta\ndata: {json.dumps(delta_event, ensure_ascii=False)}\n\n"
+                        yield f"event: response.output_text.delta\ndata: {json.dumps(delta_event_out, ensure_ascii=False)}\n\n"
             except Exception:
                 pass
 
