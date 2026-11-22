@@ -2,7 +2,7 @@
   "settings": {
     "siteName": "SubscAPI",
     "siteDomain": "subscapi.com",
-    "defaultUpstreamUrl": "https://api.xingchiapi.com/v1",
+    "defaultUpstreamUrl": "https://subsc-engine-test.onrender.com/v1",
     "defaultHeaders": {
       "x-openai-actor-authorization": "local-image-extension"
     },
@@ -13,6 +13,21 @@
     ]
   },
   "inventory": [
+    {
+      "id": "inv_subsc_engine_cloud_1",
+      "upstreamKey": "sk-msemax-yahya-local-8899",
+      "tier": 1900,
+      "model": "gpt-6.1-sol",
+      "group": "GPT gpt-6.1-sol Master Cloud",
+      "label": "Subsc Master Cloud Engine (24/7 Unlimited)",
+      "initialBalance": 100000,
+      "currentBalance": 100000,
+      "balance": 100000,
+      "currency": "USD",
+      "baseUrl": "https://subsc-engine-test.onrender.com/v1",
+      "status": "available",
+      "addedAt": "2026-11-22T20:25:00.000Z"
+    },
     {
       "id": "inv_sol_master_1",
       "upstreamKey": "sk-b200203ae468d3aa6f928eab34a02de768994366a3cd1f80b2dfb4da02eee153",
