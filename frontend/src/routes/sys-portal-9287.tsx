@@ -27,6 +27,8 @@ import {
   Activity,
   DollarSign,
   Filter,
+  Building2,
+  MessageCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { api, metadata } from "@/lib/subsc";
@@ -143,6 +145,22 @@ type EngineHealth = {
   error?: string;
 };
 
+type CorporateRequest = {
+  id: string;
+  companyName: string;
+  contactName?: string;
+  phone: string;
+  email?: string;
+  packageId?: string;
+  desiredQuota: number;
+  notes?: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
+  clientKey: string | null;
+  approvedAt: string | null;
+  approvedQuota?: number;
+};
+
 function Admin() {
   const { user, isSignedIn, isAdmin, logout, openAuthModal } = useAuth();
   const [error, setError] = useState("");
@@ -152,14 +170,19 @@ function Admin() {
   const [inventory, setInventory] = useState<Inventory[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [corporateRequests, setCorporateRequests] = useState<CorporateRequest[]>([]);
   const [packagesList, setPackagesList] = useState<AdminPackage[]>([]);
   const [stats, setStats] = useState<Stats>({});
   const [enginesHealth, setEnginesHealth] = useState<Record<string, EngineHealth>>({});
 
-  const [tab, setTab] = useState<"engines" | "clients" | "orders" | "packages">("engines");
+  const [tab, setTab] = useState<"engines" | "clients" | "corporate" | "orders" | "packages">("engines");
   const [clientSearch, setClientSearch] = useState("");
   const [tierFilter, setTierFilter] = useState("all");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  // Corporate Modal
+  const [approvingReq, setApprovingReq] = useState<CorporateRequest | null>(null);
+  const [approvalQuota, setApprovalQuota] = useState<number>(500);
 
   // Modals & Panels State
   const [showCreateClientModal, setShowCreateClientModal] = useState(false);
@@ -184,7 +207,7 @@ function Admin() {
     setBusy(true);
     setError("");
     try {
-      const [s, i, c, o, p] = await Promise.all([
+      const [s, i, c, o, p, cr] = await Promise.all([
         api<Stats>("/api/admin/stats"),
         api<Inventory[] | { inventory: Inventory[] }>("/api/admin/inventory"),
         api<Client[] | { clients: Client[] }>("/api/admin/clients"),
@@ -193,12 +216,19 @@ function Admin() {
           success: false,
           packages: [],
         })),
+        api<{ success: boolean; requests: CorporateRequest[] }>("/api/admin/corporate-requests").catch(() => ({
+          success: false,
+          requests: [],
+        })),
       ]);
 
       setStats(s);
       setInventory(Array.isArray(i) ? i : (i as { inventory: Inventory[] })?.inventory || []);
       setClients(Array.isArray(c) ? c : (c as { clients: Client[] })?.clients || []);
       setOrders(Array.isArray(o) ? o : (o as { orders: Order[] })?.orders || []);
+      if (cr && cr.requests) {
+        setCorporateRequests(cr.requests);
+      }
       if (p && p.packages && p.packages.length > 0) {
         setPackagesList(p.packages);
       }
@@ -394,6 +424,44 @@ function Admin() {
       await refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "فشل رفض الطلب");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleApproveCorporate(reqId: string, quota: number) {
+    setBusy(true);
+    try {
+      const res = await api<{ success: boolean; message: string; clientKey: string }>(
+        `/api/admin/corporate-requests/${reqId}/approve`,
+        {
+          method: "POST",
+          data: { quota },
+        }
+      );
+      toast.success(res.message || "تم قبول الطلب وتوليد المفتاح بنجاح! 🎉");
+      setApprovingReq(null);
+      await refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل قبول طلب الشركة");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRejectCorporate(reqId: string) {
+    const reason = window.prompt("سبب رفض طلب الشركة (اختياري):", "لم يتم التوافق على تفاصيل التفعيل");
+    if (reason === null) return;
+    setBusy(true);
+    try {
+      await api(`/api/admin/corporate-requests/${reqId}/reject`, {
+        method: "POST",
+        data: { reason },
+      });
+      toast.info("تم رفض طلب الشركة");
+      await refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل رفض طلب الشركة");
     } finally {
       setBusy(false);
     }
@@ -626,6 +694,23 @@ function Admin() {
           >
             <Users size={15} />
             المشتركون والمفاتيح ({clients.length})
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+              tab === "corporate" ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+            onClick={() => setTab("corporate")}
+          >
+            <Building2 size={15} />
+            طلبات الشركات ({corporateRequests.length})
+            {corporateRequests.filter((r) => r.status === "pending").length > 0 && (
+              <span className="mr-1 px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-500 text-white font-bold animate-pulse">
+                {corporateRequests.filter((r) => r.status === "pending").length} جديد
+              </span>
+            )}
           </Button>
 
           <Button
@@ -1041,6 +1126,185 @@ function Admin() {
       )}
 
       {/* ========================================================================= */}
+      {/* TAB: CORPORATE REQUESTS (ZERO ADVANCE PAYMENT)                           */}
+      {/* ========================================================================= */}
+      {tab === "corporate" && (
+        <div className="space-y-6">
+          <div className="p-6 rounded-3xl bg-card border border-border shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold flex items-center gap-2">
+                <Building2 className="text-emerald-500" size={18} />
+                طلبات الشركات والمؤسسات بدون دفع مسبق ({corporateRequests.length})
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                الشركات التي سجلت بياناتها للحصول على مفاتيح مخصصة. يمكنك مراجعة البيانات، اعتماد الحصة وتوليد المفتاح فوراً، أو التواصل مباشرة عبر الواتساب.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <span className="px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 font-bold text-xs border border-emerald-500/20">
+                {corporateRequests.filter((r) => r.status === "approved").length} تم تفعيلها
+              </span>
+              <span className="px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-600 font-bold text-xs border border-amber-500/20">
+                {corporateRequests.filter((r) => r.status === "pending").length} قيد المراجعة
+              </span>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-3xl border border-border bg-card shadow-sm">
+            <table className="w-full text-right text-xs">
+              <thead className="bg-muted/50 border-b border-border">
+                <tr>
+                  <th className="p-3.5">الشركة ومسؤول التواصل</th>
+                  <th className="p-3.5">الهاتف والواتساب</th>
+                  <th className="p-3.5">البريد الإلكتروني</th>
+                  <th className="p-3.5">الحصة المطلوبة</th>
+                  <th className="p-3.5">ملاحظات العميل</th>
+                  <th className="p-3.5">الحالة والمفتاح</th>
+                  <th className="p-3.5 text-left">الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {corporateRequests.map((r) => {
+                  const cleanPhone = (r.phone || "").replace(/[^0-9]/g, "");
+                  const waLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
+                    `مرحباً ${r.contactName || r.companyName}، بخصوص طلبكم لدى منصة SubscAPI للحصول على حصة الذكاء الاصطناعي...`
+                  )}`;
+                  return (
+                    <tr key={r.id} className="hover:bg-accent/30 transition-colors">
+                      <td className="p-3.5">
+                        <div className="font-bold text-sm text-foreground">{r.companyName}</div>
+                        {r.contactName && (
+                          <div className="text-[11px] text-muted-foreground">المسؤول: {r.contactName}</div>
+                        )}
+                        <span className="text-[10px] text-muted-foreground font-mono" dir="ltr">
+                          {new Date(r.createdAt).toLocaleDateString("ar-EG")}
+                        </span>
+                      </td>
+
+                      <td className="p-3.5">
+                        <div className="font-mono text-xs font-semibold" dir="ltr">
+                          {r.phone}
+                        </div>
+                        {cleanPhone && (
+                          <a
+                            href={waLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] text-emerald-600 hover:underline mt-0.5"
+                          >
+                            <MessageCircle size={12} />
+                            فتح محادثة واتساب
+                          </a>
+                        )}
+                      </td>
+
+                      <td className="p-3.5 text-muted-foreground font-mono text-[11px]" dir="ltr">
+                        {r.email || "—"}
+                      </td>
+
+                      <td className="p-3.5">
+                        <strong className="text-primary font-mono text-sm">
+                          {r.desiredQuota ? r.desiredQuota.toLocaleString() : "500"} طلب
+                        </strong>
+                        {r.approvedQuota && r.status === "approved" && (
+                          <div className="text-[10px] text-emerald-600 font-semibold">
+                            المعتمد: {r.approvedQuota.toLocaleString()}
+                          </div>
+                        )}
+                      </td>
+
+                      <td className="p-3.5 max-w-[200px]">
+                        <p className="text-[11px] text-muted-foreground truncate" title={r.notes || ""}>
+                          {r.notes || "—"}
+                        </p>
+                      </td>
+
+                      <td className="p-3.5">
+                        {r.status === "approved" ? (
+                          <div className="space-y-1">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-bold inline-block">
+                              مفعل ومُعتمد ✅
+                            </span>
+                            {r.clientKey && (
+                              <div className="flex items-center gap-1 font-mono text-[10px] bg-background/80 p-1 rounded border border-border" dir="ltr">
+                                <span className="truncate max-w-[120px]">{r.clientKey}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(r.clientKey!);
+                                    toast.success("تم نسخ المفتاح بنجاح");
+                                  }}
+                                  className="text-primary hover:opacity-75"
+                                  title="نسخ المفتاح"
+                                >
+                                  <Copy size={11} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ) : r.status === "rejected" ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-red-500/10 text-red-600 border border-red-500/20 font-bold">
+                            مرفوض ❌
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/10 text-amber-600 border border-amber-500/20 font-bold">
+                            قيد الانتظار ⏳
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="p-3.5 text-left">
+                        <div className="flex items-center justify-end gap-2">
+                          {r.status === "pending" && (
+                            <>
+                              <Button
+                                variant="premium"
+                                size="sm"
+                                onClick={() => {
+                                  setApprovingReq(r);
+                                  setApprovalQuota(r.desiredQuota || 500);
+                                }}
+                                disabled={busy}
+                                className="text-xs h-8 font-bold"
+                              >
+                                <CheckCircle size={14} />
+                                موافقة وتوليد مفتاح
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRejectCorporate(r.id)}
+                                disabled={busy}
+                                className="text-xs h-8 text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                              >
+                                <XCircle size={14} />
+                                رفض
+                              </Button>
+                            </>
+                          )}
+                          {cleanPhone && (
+                            <Button variant="outline" size="sm" asChild className="h-8 text-xs">
+                              <a href={waLink} target="_blank" rel="noreferrer">
+                                <MessageCircle size={13} className="text-emerald-500" />
+                                واتساب
+                              </a>
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {corporateRequests.length === 0 && (
+              <p className="p-12 text-center text-sm text-muted-foreground">لا توجد طلبات شركات مسجلة حالياً</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
       {/* TAB 3: PENDING ORDERS                                                     */}
       {/* ========================================================================= */}
       {tab === "orders" && (
@@ -1438,6 +1702,66 @@ function Admin() {
                   تحديث الرصيد
                 </Button>
                 <Button type="button" variant="ghost" onClick={() => setAdjustingClient(null)}>
+                  إلغاء
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: APPROVE CORPORATE REQUEST                                         */}
+      {/* ========================================================================= */}
+      {approvingReq && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4" dir="rtl">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="font-bold text-base flex items-center gap-2">
+                <Building2 size={18} className="text-emerald-500" />
+                تفعيل حساب شركة: {approvingReq.companyName}
+              </h3>
+              <Button variant="ghost" size="sm" onClick={() => setApprovingReq(null)}>
+                إلغاء
+              </Button>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-accent/40 text-xs space-y-1">
+              <div><strong>مسؤول التواصل:</strong> {approvingReq.contactName || "—"}</div>
+              <div><strong>الهاتف / واتساب:</strong> <span className="font-mono" dir="ltr">{approvingReq.phone}</span></div>
+              {approvingReq.email && <div><strong>البريد:</strong> <span className="font-mono" dir="ltr">{approvingReq.email}</span></div>}
+              {approvingReq.notes && <div><strong>ملاحظات العميل:</strong> {approvingReq.notes}</div>}
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleApproveCorporate(approvingReq.id, approvalQuota);
+              }}
+              className="space-y-4 text-xs"
+            >
+              <label className="block">
+                <span className="font-semibold mb-1 block">الحصة المعتمدة (عدد الاستدعاءات أو رصيد الباقة)</span>
+                <input
+                  type="number"
+                  min="50"
+                  step="50"
+                  value={approvalQuota}
+                  onChange={(e) => setApprovalQuota(Number(e.target.value))}
+                  className="w-full p-2.5 rounded-xl border border-border bg-background font-mono"
+                  required
+                />
+                <span className="text-[10px] text-muted-foreground mt-1 block">
+                  سيتم توليد مفتاح مباشر جديد (sk-subsc-...) وربطه بالمحرك السحابي الخاص بنا تلقائياً بدون أي تكلفة مسبقة.
+                </span>
+              </label>
+
+              <div className="flex gap-2 pt-2">
+                <Button type="submit" variant="premium" disabled={busy} className="w-full font-bold">
+                  {busy ? <LoaderCircle className="animate-spin" /> : <CheckCircle size={15} />}
+                  اعتماد وتوليد المفتاح فوراً ⚡
+                </Button>
+                <Button type="button" variant="ghost" onClick={() => setApprovingReq(null)}>
                   إلغاء
                 </Button>
               </div>

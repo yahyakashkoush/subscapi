@@ -27,91 +27,13 @@
       "baseUrl": "https://subsc-engine-test.onrender.com/v1",
       "status": "available",
       "addedAt": "2026-11-22T20:25:00.000Z"
-    },
-    {
-      "id": "inv_sol_master_1",
-      "upstreamKey": "sk-b200203ae468d3aa6f928eab34a02de768994366a3cd1f80b2dfb4da02eee153",
-      "tier": 1600,
-      "model": "gpt-6.1-sol",
-      "group": "GPT gpt-6.1-sol 1600$",
-      "label": "Master Engine #1 - GPT-6.1 Sol (1600$)",
-      "initialBalance": 1600,
-      "currentBalance": 1599.9991,
-      "balance": 1599.9991,
-      "currency": "USD",
-      "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
-      "addedAt": "2026-11-21T15:15:00.000Z"
-    },
-    {
-      "id": "inv_sol_master_2",
-      "upstreamKey": "sk-43838df7ee70a2f8b80596b0cfacd6bfc5b2904286015d5dde3408356abb0ab8",
-      "tier": 1600,
-      "model": "gpt-6.1-sol",
-      "group": "GPT gpt-6.1-sol 1600$",
-      "label": "Master Engine #2 - GPT-6.1 Sol Backup (1600$)",
-      "initialBalance": 1900,
-      "currentBalance": 1896.79,
-      "balance": 1599.9991,
-      "currency": "USD",
-      "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "available",
-      "addedAt": "2026-11-21T15:15:00.000Z"
-    },
-    {
-      "id": "inv_astra_master_1",
-      "upstreamKey": "sk-e2a558e185e9fdb3bdd3ce8cc47ae29c0f4f3a287893f246b16b9ed84e0f3711",
-      "tier": 1600,
-      "model": "astra",
-      "group": "GPT ASTRA 1600$",
-      "label": "ASTRA Engine #1 (1600$)",
-      "initialBalance": 1600,
-      "currentBalance": 1600,
-      "balance": 1600,
-      "currency": "USD",
-      "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "disabled",
-      "addedAt": "2026-11-21T15:15:00.000Z",
-      "disabledReason": "upstream_group_balance_depleted"
-    },
-    {
-      "id": "inv_astra_master_2",
-      "upstreamKey": "sk-60664edd26f1211c067ff349b56e165dddc5569180ba4bfc93a15f54aa39f649",
-      "tier": 1600,
-      "model": "astra",
-      "group": "GPT ASTRA 1600$",
-      "label": "ASTRA Engine #2 (1600$)",
-      "initialBalance": 1600,
-      "currentBalance": 1600,
-      "balance": 1600,
-      "currency": "USD",
-      "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "disabled",
-      "addedAt": "2026-11-21T15:15:00.000Z",
-      "disabledReason": "upstream_group_balance_depleted"
-    },
-    {
-      "id": "inv_astra_master_3",
-      "upstreamKey": "sk-8a980bf941b004b3c324a9f809bff96c6a0f63fb53eaf3dc7cebb528aa322a3c",
-      "tier": 1600,
-      "model": "astra",
-      "group": "GPT ASTRA 1600$",
-      "label": "ASTRA Engine #3 (1600$)",
-      "initialBalance": 1600,
-      "currentBalance": 1599.9996,
-      "balance": 1599.9996,
-      "currency": "USD",
-      "baseUrl": "https://api.xingchiapi.com/v1",
-      "status": "disabled",
-      "addedAt": "2026-11-21T15:15:00.000Z",
-      "disabledReason": "upstream_group_balance_depleted"
     }
   ],
   "clientKeys": [
     {
       "id": "cli_079b04616a2f",
       "clientKey": "sk-subsc-250u-5be3e106acd392f858786ec3ddaa6905",
-      "inventoryKeyId": "inv_sol_master_1",
+      "inventoryKeyId": "inv_subsc_engine_cloud_1",
       "tier": 250,
       "model": "gpt-6.1-sol",
       "customerName": "Seif Hekal",
@@ -131,7 +53,7 @@
     {
       "id": "cli_768deefcfdea",
       "clientKey": "sk-subsc-50u-0a66c34a5356c54b35c5260fc4ede3ab",
-      "inventoryKeyId": "inv_sol_master_2",
+      "inventoryKeyId": "inv_subsc_engine_cloud_1",
       "tier": 50,
       "model": "gpt-6.1-sol",
       "customerName": "yahya emad",
@@ -151,7 +73,7 @@
     {
       "id": "cli_7b1a144a162b",
       "clientKey": "sk-subsc-50u-10fbe390209e9d80a4c608200db66bc8",
-      "inventoryKeyId": "inv_sol_master_1",
+      "inventoryKeyId": "inv_subsc_engine_cloud_1",
       "tier": 50,
       "model": "GPT ASTRA",
       "customerName": "yahya kashkoush",
@@ -177,12 +99,12 @@
       "totalRequests": 4,
       "totalTokens": 5798,
       "lastUsedAt": "2026-11-19T16:57:42.140Z",
-      "inventoryKeyId": "inv_sol_master_2"
+      "inventoryKeyId": "inv_subsc_engine_cloud_1"
     },
     {
       "id": "cli_d4921ce9fd89",
       "clientKey": "sk-subsc-500u-16e06cef4a982b8ff9333e5a87a33725",
-      "inventoryKeyId": "inv_sol_master_1",
+      "inventoryKeyId": "inv_subsc_engine_cloud_1",
       "tier": 500,
       "customerName": "مطور تجريبي",
       "customerContact": "test@subscapi.com",
@@ -198,7 +120,7 @@
     {
       "id": "cli_036c462e433a",
       "clientKey": "sk-subsc-100u-97e041c0792252226f324fa60cdc4e40",
-      "inventoryKeyId": "inv_sol_master_2",
+      "inventoryKeyId": "inv_subsc_engine_cloud_1",
       "tier": 100,
       "customerName": "يحيى عماد",
       "customerContact": "",
@@ -214,7 +136,7 @@
     {
       "id": "cli_096c02f3308c",
       "clientKey": "sk-subsc-100u-d7b86f773103fd64cdbe93da3ea0f90b",
-      "inventoryKeyId": "inv_sol_master_1",
+      "inventoryKeyId": "inv_subsc_engine_cloud_1",
       "tier": 100,
       "customerName": "يحيى عماد",
       "customerContact": "@yahya_telegram",
@@ -430,5 +352,6 @@
       "createdAt": "2026-11-20T16:52:15.003Z",
       "approvedAt": "2026-11-20T16:52:22.791Z"
     }
-  ]
+  ],
+  "corporateRequests": []
 }

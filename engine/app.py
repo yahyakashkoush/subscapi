@@ -605,56 +605,70 @@ async def chat_stream_generator(request_data: ChatRequest, session_data: dict) -
 async def chat_completions(request: Request, chat_request: ChatRequest):
     session_data = get_session_data()
     sem = _get_semaphore()
-    available = _get_available_slots(sem)
-    if available == 0:
+    try:
+        await asyncio.wait_for(sem.acquire(), timeout=35.0)
+    except asyncio.TimeoutError:
         raise HTTPException(
-            status_code=429,
+            status_code=503,
             detail={
-                "error": f"Server busy — {MAX_CONCURRENT} requests already in progress. Try again shortly.",
+                "error": "Server request queue timeout — high traffic, please retry shortly.",
                 "type": "concurrency_limit"
             }
         )
 
-    async with sem:
+    try:
         if chat_request.stream:
+            async def _tracked_chat_stream():
+                try:
+                    async for chunk in chat_stream_generator(chat_request, session_data):
+                        yield chunk
+                finally:
+                    sem.release()
+
             return StreamingResponse(
-                chat_stream_generator(chat_request, session_data),
+                _tracked_chat_stream(),
                 media_type="text/event-stream"
             )
         else:
-            full_content = ""
-            model_slug = chat_request.model
+            try:
+                full_content = ""
+                model_slug = chat_request.model
 
-            async for chunk_str in chat_stream_generator(chat_request, session_data):
-                if chunk_str.startswith("data: ") and chunk_str != "data: [DONE]\n\n":
-                    try:
-                        chunk = json.loads(chunk_str[6:].strip())
-                        delta = chunk.get("choices", [{}])[0].get("delta", {})
-                        full_content += delta.get("content", "")
-                        m = chunk.get("model", "")
-                        if m and m != "auto":
-                            model_slug = m
-                    except Exception:
-                        pass
+                async for chunk_str in chat_stream_generator(chat_request, session_data):
+                    if chunk_str.startswith("data: ") and chunk_str != "data: [DONE]\n\n":
+                        try:
+                            chunk = json.loads(chunk_str[6:].strip())
+                            delta = chunk.get("choices", [{}])[0].get("delta", {})
+                            full_content += delta.get("content", "")
+                            m = chunk.get("model", "")
+                            if m and m != "auto":
+                                model_slug = m
+                        except Exception:
+                            pass
 
-            final_cleaner = StreamCleaner()
-            full_content = final_cleaner.feed(full_content) + final_cleaner.flush()
-            full_content = StreamCleaner._deep_clean(full_content)
+                final_cleaner = StreamCleaner()
+                full_content = final_cleaner.feed(full_content) + final_cleaner.flush()
+                full_content = StreamCleaner._deep_clean(full_content)
 
-            return JSONResponse({
-                "id": f"chatcmpl-{uuid.uuid4().hex[:12]}",
-                "object": "chat.completion",
-                "created": int(time.time()),
-                "model": model_slug,
-                "choices": [{
-                    "index": 0,
-                    "message": {
-                        "role": "assistant",
-                        "content": full_content
-                    },
-                    "finish_reason": "stop"
-                }]
-            })
+                return JSONResponse({
+                    "id": f"chatcmpl-{uuid.uuid4().hex[:12]}",
+                    "object": "chat.completion",
+                    "created": int(time.time()),
+                    "model": model_slug,
+                    "choices": [{
+                        "index": 0,
+                        "message": {
+                            "role": "assistant",
+                            "content": full_content
+                        },
+                        "finish_reason": "stop"
+                    }]
+                })
+            finally:
+                sem.release()
+    except Exception:
+        sem.release()
+        raise
 
 
 # =============================================================================
@@ -843,53 +857,67 @@ async def responses_endpoint(request: Request):
 
     session_data = get_session_data()
     sem = _get_semaphore()
-    available = _get_available_slots(sem)
-    if available == 0:
+    try:
+        await asyncio.wait_for(sem.acquire(), timeout=35.0)
+    except asyncio.TimeoutError:
         raise HTTPException(
-            status_code=429,
+            status_code=503,
             detail={
-                "error": f"Server busy — {MAX_CONCURRENT} requests already in progress. Try again shortly.",
+                "error": "Server request queue timeout — high traffic, please retry shortly.",
                 "type": "concurrency_limit"
             }
         )
 
-    async with sem:
+    try:
         if is_stream:
+            async def _tracked_responses_stream():
+                try:
+                    async for chunk in responses_stream_generator(chat_request, session_data):
+                        yield chunk
+                finally:
+                    sem.release()
+
             return StreamingResponse(
-                responses_stream_generator(chat_request, session_data),
+                _tracked_responses_stream(),
                 media_type="text/event-stream"
             )
         else:
-            full_text = ""
-            async for chunk_str in chat_stream_generator(chat_request, session_data):
-                if chunk_str.startswith("data: ") and chunk_str.strip() != "data: [DONE]":
-                    try:
-                        chunk_json = json.loads(chunk_str[6:].strip())
-                        choices = chunk_json.get("choices", [])
-                        if choices:
-                            piece = choices[0].get("delta", {}).get("content", "")
-                            if piece:
-                                full_text += piece
-                    except Exception:
-                        pass
+            try:
+                full_text = ""
+                async for chunk_str in chat_stream_generator(chat_request, session_data):
+                    if chunk_str.startswith("data: ") and chunk_str.strip() != "data: [DONE]":
+                        try:
+                            chunk_json = json.loads(chunk_str[6:].strip())
+                            choices = chunk_json.get("choices", [])
+                            if choices:
+                                piece = choices[0].get("delta", {}).get("content", "")
+                                if piece:
+                                    full_text += piece
+                        except Exception:
+                            pass
 
-            resp_id = f"resp_{uuid.uuid4().hex[:24]}"
-            item_id = f"item_{uuid.uuid4().hex[:24]}"
-            return JSONResponse({
-                "id": resp_id,
-                "object": "response",
-                "status": "completed",
-                "model": chat_request.model,
-                "output": [
-                    {
-                        "id": item_id,
-                        "type": "message",
-                        "status": "completed",
-                        "role": "assistant",
-                        "content": [{"type": "text", "text": full_text}]
-                    }
-                ]
-            })
+                resp_id = f"resp_{uuid.uuid4().hex[:24]}"
+                item_id = f"item_{uuid.uuid4().hex[:24]}"
+                return JSONResponse({
+                    "id": resp_id,
+                    "object": "response",
+                    "status": "completed",
+                    "model": chat_request.model,
+                    "output": [
+                        {
+                            "id": item_id,
+                            "type": "message",
+                            "status": "completed",
+                            "role": "assistant",
+                            "content": [{"type": "output_text", "text": full_text}]
+                        }
+                    ]
+                })
+            finally:
+                sem.release()
+    except Exception:
+        sem.release()
+        raise
 
 
 @app.get("/")

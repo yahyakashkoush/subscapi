@@ -6,14 +6,14 @@ import {
   KeyRound,
   LoaderCircle,
   ShieldCheck,
-  Smartphone,
   Coins,
   Send,
-  Clock,
-  ExternalLink,
-  RefreshCw,
   Sparkles,
-  LogIn
+  LogIn,
+  Building2,
+  Phone,
+  Mail,
+  FileText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -55,7 +55,7 @@ export function CopyBox({ value, label }: { value: string; label?: string }) {
   );
 }
 
-type PaymentMethod = "vodafone" | "bybit" | "instapay";
+type PaymentMethod = "bybit" | "corporate";
 
 export function Checkout({
   selected,
@@ -66,36 +66,38 @@ export function Checkout({
 }) {
   const { currency } = useCurrency();
   const { isSignedIn, user, openAuthModal } = useAuth();
-  const [method, setMethod] = useState<PaymentMethod>("vodafone");
+  const [method, setMethod] = useState<PaymentMethod>("bybit");
   const [selectedModel, setSelectedModel] = useState<string>("GPT ASTRA");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [delivery, setDelivery] = useState<{ clientKey: string; baseUrl: string } | null>(null);
-  const [pendingOrder, setPendingOrder] = useState<{ id: string; message: string } | null>(null);
+
+  // Corporate Request State
+  const [corpSubmitted, setCorpSubmitted] = useState(false);
+  const [corpResult, setCorpResult] = useState<{ message: string; requestId?: string } | null>(null);
+  const [companyName, setCompanyName] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [corpPhone, setCorpPhone] = useState("");
+  const [corpEmail, setCorpEmail] = useState("");
+  const [desiredQuota, setDesiredQuota] = useState<number>(selected?.amount || 500);
+  const [corpNotes, setCorpNotes] = useState("");
 
   useEffect(() => {
-    if (selected?.models && selected.models.length > 0) {
+    if (selected?.models && selected.models.length > 0 && selected.models[0]) {
       setSelectedModel(selected.models[0]);
     }
+    if (selected?.amount) {
+      setDesiredQuota(selected.amount);
+    }
   }, [selected]);
-
-  // Vodafone Cash state
-  const [vfLink, setVfLink] = useState<{ paymentUrl: string; orderId: string } | null>(null);
-  const [checkingVf, setCheckingVf] = useState(false);
 
   // Bybit state
   const [bybitChain, setBybitChain] = useState<"TRC20" | "BEP20" | "SOL">("TRC20");
   const [txId, setTxId] = useState("");
 
-  // InstaPay state
-  const [senderName, setSenderName] = useState("");
-  const [senderPhone, setSenderPhone] = useState("");
-  const [instaRef, setInstaRef] = useState("");
-
   // Deposit info from backend
   const [paymentInfo, setPaymentInfo] = useState<{
     egpRate: number;
-    instapay: { name: string; username: string; phone: string };
     bybitAddresses: Record<string, { address: string; network: string }>;
   } | null>(null);
 
@@ -104,7 +106,6 @@ export function Checkout({
       api<{
         success: boolean;
         egpRate: number;
-        instapay: { name: string; username: string; phone: string };
         bybitAddresses: Record<string, { address: string; network: string }>;
       }>("/api/payment/info")
         .then((data) => {
@@ -115,65 +116,6 @@ export function Checkout({
         .catch(() => {});
     }
   }, [selected]);
-
-  // Handle Vodafone Cash Link Generation
-  async function handleCreateVodafoneLink() {
-    if (!selected) return;
-    setBusy(true);
-    setError("");
-    try {
-      const res = await api<{ success: boolean; paymentUrl: string; orderId: string; amountEGP: number }>(
-        "/api/payment/vodafone/create",
-        {
-          method: "POST",
-          data: {
-            tier: selected.amount,
-            model: selectedModel,
-            customerName: user?.name || "عميل فودافون كاش",
-            customerEmail: user?.email,
-            userId: user?.id,
-            clerkUserId: user?.id,
-          },
-        }
-      );
-      if (res && res.paymentUrl) {
-        setVfLink({ paymentUrl: res.paymentUrl, orderId: res.orderId });
-        window.open(res.paymentUrl, "_blank");
-        toast.success("تم توليد رابط الدفع، جارٍ فتحه الآن");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "فشل إنشاء رابط دفع فودافون كاش");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  // Check Vodafone Cash status
-  async function handleCheckVodafone() {
-    if (!vfLink) return;
-    setCheckingVf(true);
-    setError("");
-    try {
-      const res = await api<{
-        success: boolean;
-        status: string;
-        clientKey?: string;
-        baseUrl?: string;
-        message?: string;
-      }>(`/api/payment/vodafone/check/${vfLink.orderId}`);
-
-      if (res.status === "completed" && res.clientKey) {
-        setDelivery({ clientKey: res.clientKey, baseUrl: res.baseUrl || "https://ai.subsc.tech/v1" });
-        toast.success("تم تأكيد الدفع وتفعيل المفتاح بنجاح! 🚀");
-      } else {
-        toast.info(res.message || "الدفع ما زال معلقاً، يرجى إتمام السحب على هاتفك أولاً");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذر التحقق من الدفع");
-    } finally {
-      setCheckingVf(false);
-    }
-  }
 
   // Handle Bybit Verification
   async function handleVerifyBybit(e: FormEvent) {
@@ -215,37 +157,38 @@ export function Checkout({
     }
   }
 
-  // Handle InstaPay Submission (Pending Approval)
-  async function handleInstapaySubmit(e: FormEvent) {
+  // Handle Corporate Request Submission (Zero upfront payment, Admin activates)
+  async function handleCorporateSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!selected) return;
+    if (!companyName.trim() || !corpPhone.trim()) {
+      setError("يرجى إدخال اسم الشركة ورقم الهاتف أو الواتساب للتواصل");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
-      const res = await api<{ success: boolean; status: string; orderId: string; message: string }>(
-        "/api/payment/instapay/submit",
-        {
-          method: "POST",
-          data: {
-            tier: selected.amount,
-            model: selectedModel,
-            userId: user?.id,
-            clerkUserId: user?.id,
-            customerName: user?.name || senderName,
-            customerEmail: user?.email,
-            senderName,
-            senderPhone,
-            transactionRef: instaRef,
-          },
-        }
-      );
+      const res = await api<{ success: boolean; message: string; requestId?: string }>("/api/corporate/request", {
+        method: "POST",
+        data: {
+          companyName: companyName.trim(),
+          contactName: contactName.trim() || user?.name || "",
+          phone: corpPhone.trim(),
+          email: corpEmail.trim() || user?.email || "",
+          packageId: selected?.id || "pkg_corporate",
+          desiredQuota: desiredQuota || selected?.amount || 500,
+          notes: corpNotes.trim(),
+        },
+      });
 
-      if (res.success) {
-        setPendingOrder({ id: res.orderId, message: res.message });
-        toast.success("تم إرسال الطلب بنجاح، وهو قيد المراجعة والانتظار");
+      if (res && res.success) {
+        setCorpSubmitted(true);
+        setCorpResult({ message: res.message, ...(res.requestId ? { requestId: res.requestId } : {}) });
+        toast.success("تم إرسال طلب شركتكم بنجاح! 🏢");
+      } else {
+        throw new Error((res as { error?: string })?.error || "فشل إرسال طلب الشركة");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذر إرسال الطلب");
+      setError(err instanceof Error ? err.message : "فشل إرسال الطلب، يرجى المحاولة لاحقاً");
     } finally {
       setBusy(false);
     }
@@ -265,8 +208,8 @@ export function Checkout({
         if (!open) {
           close();
           setDelivery(null);
-          setPendingOrder(null);
-          setVfLink(null);
+          setCorpSubmitted(false);
+          setCorpResult(null);
           setError("");
         }
       }}
@@ -280,8 +223,8 @@ export function Checkout({
         <DialogTitle>
           {delivery
             ? "مفتاحك جاهز. ابدأ البناء! 🚀"
-            : pendingOrder
-            ? "طلبك قيد المراجعة والانتظار ⏳"
+            : corpSubmitted
+            ? "تم استلام طلب تفعيل شركتكم بنجاح 🏢"
             : !isSignedIn
             ? "تسجيل الدخول مطلوب"
             : `تفعيل ${selected?.name}`}
@@ -290,11 +233,11 @@ export function Checkout({
         <DialogDescription>
           {delivery
             ? "تم تفعيل اشتراكك وتوليد مفتاح SubscAPI الخاص بك بنجاح. احتفظ به في مكان آمن."
-            : pendingOrder
-            ? pendingOrder.message
+            : corpSubmitted
+            ? (corpResult?.message || "سيقوم فريق الدعم الفني بمطابقة بياناتكم وتفعيل المفتاح المخصص فوراً.")
             : !isSignedIn
             ? "يرجى تسجيل الدخول أو إنشاء حساب لربط مفتاح الـ API الخاص بك وحفظ حصتك."
-            : "اختر وسيلة الدفع المناسبة لإتمام التفعيل واستلام مفتاحك."}
+            : "اختر وسيلة الدفع بالكريبتو أو التفعيل المباشر للشركات والمؤسسات بدون دفع مسبق."}
         </DialogDescription>
 
         {/* Delivery State (Success) */}
@@ -317,30 +260,35 @@ export function Checkout({
               </Button>
             </div>
           </div>
-        ) : pendingOrder ? (
-          /* Pending Approval State */
+        ) : corpSubmitted ? (
+          /* Corporate Request Success State */
           <div className="space-y-4 my-3 text-center">
-            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200">
-              <Clock className="w-8 h-8 mx-auto mb-2 text-amber-500 animate-pulse" />
-              <h4 className="font-bold text-base mb-1">رقم الطلب: {pendingOrder.id}</h4>
-              <p className="text-sm opacity-90">
-                تم تسجيل طلبك لتحويل انستاباي/اليدوي بمبلغ{" "}
-                <strong>{egpAmount.toLocaleString()} ج.م</strong>. سيقوم الأدمن بمطابقة التحويل وتفعيل
-                المفتاح في حسابك مباشرة.
+            <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-950 dark:text-emerald-100">
+              <Building2 className="w-10 h-10 mx-auto mb-2 text-emerald-500" />
+              <h4 className="font-bold text-base mb-1">طلب تسجيل شركة: {companyName}</h4>
+              <p className="text-xs text-muted-foreground mb-3 font-mono">
+                رقم الطلب: {corpResult?.requestId || "CORP-PENDING"}
+              </p>
+              <p className="text-sm leading-relaxed">
+                تم تسجيل طلبكم بنجاح بحصة <strong>{desiredQuota.toLocaleString()} استدعاء</strong>. 
+                سيقوم مسؤول النظام بالتواصل معكم عبر الواتساب على رقم <strong>{corpPhone}</strong> لتفعيل المفتاح المباشر الخاص بشركتكم فوراً.
               </p>
             </div>
             <div className="flex flex-col gap-2 pt-2">
               <Button variant="premium" asChild>
-                <Link to="/dashboard" onClick={close}>
-                  متابعة حالة الطلب في حسابي
-                  <ArrowLeft size={16} />
-                </Link>
-              </Button>
-              <Button variant="glass" asChild>
-                <a href="https://t.me/subscnow" target="_blank" rel="noreferrer">
+                <a
+                  href={`https://wa.me/201018671607?text=${encodeURIComponent(
+                    `مرحباً SubscAPI، قمت بتقديم طلب شركة (${companyName}) برقم ${corpResult?.requestId || ""} وأود المتابعة لتفعيل المفتاح.`
+                  )}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   <Send size={15} />
-                  إرسال صورة التحويل عبر تيليجرام
+                  متابعة التفعيل فوراً عبر الواتساب ⚡
                 </a>
+              </Button>
+              <Button variant="outline" onClick={close}>
+                إغلاق
               </Button>
             </div>
           </div>
@@ -415,103 +363,38 @@ export function Checkout({
               </div>
             </div>
 
-            {/* Payment Method Tabs */}
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => setMethod("vodafone")}
-                className={`p-3 rounded-xl border text-center transition-all ${
-                  method === "vodafone"
-                    ? "border-primary bg-primary/10 font-bold text-primary shadow-sm"
-                    : "border-border hover:bg-accent text-muted-foreground"
-                }`}
-              >
-                <Smartphone className="w-5 h-5 mx-auto mb-1 text-red-500" />
-                <div className="text-xs">فودافون كاش</div>
-                <div className="text-[10px] opacity-75">دفع إلكتروني فوري</div>
-              </button>
-
+            {/* Payment & Activation Method Tabs */}
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setMethod("bybit")}
                 className={`p-3 rounded-xl border text-center transition-all ${
                   method === "bybit"
-                    ? "border-primary bg-primary/10 font-bold text-primary shadow-sm"
+                    ? "border-primary bg-primary/10 font-bold text-primary shadow-sm ring-1 ring-primary/20"
                     : "border-border hover:bg-accent text-muted-foreground"
                 }`}
               >
                 <Coins className="w-5 h-5 mx-auto mb-1 text-yellow-500" />
-                <div className="text-xs">تحويل Bybit</div>
-                <div className="text-[10px] opacity-75">USDT Onchain</div>
+                <div className="text-xs font-bold">تحويل فوري Bybit USDT</div>
+                <div className="text-[10px] opacity-75">تفعيل أوتوماتيكي فوري ⚡</div>
               </button>
 
               <button
                 type="button"
-                onClick={() => setMethod("instapay")}
+                onClick={() => setMethod("corporate")}
                 className={`p-3 rounded-xl border text-center transition-all ${
-                  method === "instapay"
-                    ? "border-primary bg-primary/10 font-bold text-primary shadow-sm"
+                  method === "corporate"
+                    ? "border-primary bg-primary/10 font-bold text-primary shadow-sm ring-1 ring-primary/20"
                     : "border-border hover:bg-accent text-muted-foreground"
                 }`}
               >
-                <Clock className="w-5 h-5 mx-auto mb-1 text-emerald-500" />
-                <div className="text-xs">انستاباي / يدوي</div>
-                <div className="text-[10px] opacity-75">مراجعة الأدمن</div>
+                <Building2 className="w-5 h-5 mx-auto mb-1 text-emerald-500" />
+                <div className="text-xs font-bold">طلب شركات ومؤسسات</div>
+                <div className="text-[10px] opacity-75">بدون دفع مسبق / تفعيل فوري 🏢</div>
               </button>
             </div>
 
-            {/* TAB 1: VODAFONE CASH (SHA7NAWY GATEWAY) */}
-            {method === "vodafone" && (
-              <div className="space-y-3 p-4 rounded-xl border border-border bg-card/50">
-                <div className="flex items-center justify-between text-sm">
-                  <span>المبلغ المطلوب بالمصري:</span>
-                  <strong className="text-primary font-mono text-base">
-                    {egpAmount.toLocaleString()} ج.م
-                  </strong>
-                </div>
-
-                {!vfLink ? (
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">
-                      سيتم إنشاء رابط دفع رسمي عبر بوابة فودافون كاش ومحافظ مصر المعتمدة. بعد إتمام
-                      السحب، سيتم تفعيل المفتاح تلقائياً.
-                    </p>
-                    <Button
-                      type="button"
-                      variant="premium"
-                      className="w-full"
-                      onClick={handleCreateVodafoneLink}
-                      disabled={busy}
-                    >
-                      {busy ? <LoaderCircle className="animate-spin" /> : <Smartphone size={16} />}
-                      {busy ? "جارٍ تجهيز بوابة الدفع..." : "الدفع عبر فودافون كاش ↗️"}
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-3 pt-1">
-                    <div className="p-3 rounded-lg bg-primary/10 text-xs text-center border border-primary/20">
-                      تم إنشاء رابط الدفع بنجاح. إذا لم تفتح نافذة الدفع تلقائياً:
-                    </div>
-                    <Button variant="default" className="w-full" asChild>
-                      <a href={vfLink.paymentUrl} target="_blank" rel="noreferrer">
-                        فتح رابط دفع فودافون كاش الآن <ExternalLink size={15} />
-                      </a>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={handleCheckVodafone}
-                      disabled={checkingVf}
-                    >
-                      {checkingVf ? <LoaderCircle className="animate-spin" /> : <RefreshCw size={15} />}
-                      {checkingVf ? "جارٍ التحقق من السحب..." : "تحقق من حالة الدفع وتفعيل المفتاح 🔄"}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* TAB 2: BYBIT USDT DEPOSIT */}
+            {/* TAB 1: BYBIT USDT DEPOSIT */}
             {method === "bybit" && (
               <form onSubmit={handleVerifyBybit} className="space-y-3 p-4 rounded-xl border border-border bg-card/50">
                 <div className="flex items-center justify-between text-xs mb-1">
@@ -563,45 +446,59 @@ export function Checkout({
               </form>
             )}
 
-            {/* TAB 3: INSTAPAY / MANUAL (WAITING LIST) */}
-            {method === "instapay" && (
-              <form onSubmit={handleInstapaySubmit} className="space-y-3 p-4 rounded-xl border border-border bg-card/50">
+            {/* TAB 2: CORPORATE REQUEST (ZERO ADVANCE PAYMENT) */}
+            {method === "corporate" && (
+              <form onSubmit={handleCorporateSubmit} className="space-y-3 p-4 rounded-xl border border-border bg-card/50">
                 <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs">
-                  <div className="font-bold text-emerald-600 dark:text-emerald-400 mb-1">
-                    بيانات تحويل انستاباي:
+                  <div className="font-bold text-emerald-600 dark:text-emerald-400 mb-1 flex items-center gap-1.5">
+                    <Building2 size={15} />
+                    نظام تفعيل الشركات والمشاريع الكبرى:
                   </div>
-                  <div>
-                    الحساب / الرقم:{" "}
-                    <strong className="font-mono text-foreground">
-                      {paymentInfo?.instapay.username || "subscapi@instapay"}
-                    </strong>
-                  </div>
-                  <div>
-                    المبلغ المطلوب:{" "}
-                    <strong className="font-mono text-foreground">
-                      {egpAmount.toLocaleString()} ج.م
-                    </strong>
-                  </div>
+                  <p className="text-muted-foreground leading-relaxed">
+                    لا يتطلب أي دفع مسبق الآن. قم بملء بيانات شركتك وحصتك المطلوبة، وسيقوم مسؤول النظام باعتماد حسابك وتوليد مفتاح الـ API المخصص لكم فوراً والتواصل معكم عبر الواتساب.
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <label>
-                    اسم صاحب الحساب المحول
+                    اسم الشركة / المؤسسة *
                     <input
-                      value={senderName}
-                      onChange={(e) => setSenderName(e.target.value)}
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
                       required
-                      placeholder="الاسم كما يظهر في التطبيق"
+                      placeholder="مثال: شركة آفاق البرمجية"
                       className="w-full mt-1 p-2 rounded-lg border border-border bg-background text-xs"
                     />
                   </label>
                   <label>
-                    رقم الهاتف أو عنوان انستاباي
+                    اسم مسؤول التواصل
                     <input
-                      value={senderPhone}
-                      onChange={(e) => setSenderPhone(e.target.value)}
+                      value={contactName}
+                      onChange={(e) => setContactName(e.target.value)}
+                      placeholder="اسم المهندس أو المدير"
+                      className="w-full mt-1 p-2 rounded-lg border border-border bg-background text-xs"
+                    />
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <label>
+                    رقم الواتساب / الهاتف للتفعيل *
+                    <input
+                      value={corpPhone}
+                      onChange={(e) => setCorpPhone(e.target.value)}
                       required
-                      placeholder="010... أو name@instapay"
+                      placeholder="+201..."
+                      dir="ltr"
+                      className="w-full mt-1 p-2 rounded-lg border border-border bg-background text-xs font-mono"
+                    />
+                  </label>
+                  <label>
+                    البريد الإلكتروني للعمل
+                    <input
+                      value={corpEmail}
+                      onChange={(e) => setCorpEmail(e.target.value)}
+                      placeholder="info@company.com"
                       dir="ltr"
                       className="w-full mt-1 p-2 rounded-lg border border-border bg-background text-xs"
                     />
@@ -609,23 +506,33 @@ export function Checkout({
                 </div>
 
                 <label className="block text-xs font-medium">
-                  الرقم المرجعي للتحويل (Reference No / TxID)
+                  الكمية / الحصة المطلوبة (عدد الاستدعاءات أو رصيد الباقة)
                   <input
-                    value={instaRef}
-                    onChange={(e) => setInstaRef(e.target.value)}
-                    required
-                    placeholder="مثال: 59384729103"
-                    dir="ltr"
+                    type="number"
+                    value={desiredQuota}
+                    onChange={(e) => setDesiredQuota(Number(e.target.value))}
+                    min={50}
+                    step={50}
                     className="w-full mt-1 p-2 rounded-lg border border-border bg-background text-xs font-mono"
                   />
                 </label>
 
+                <label className="block text-xs font-medium">
+                  ملاحظات أو طبيعة استخدام الفريق (اختياري)
+                  <input
+                    value={corpNotes}
+                    onChange={(e) => setCorpNotes(e.target.value)}
+                    placeholder="مثال: نريد ربطه مع Cursor أو Cline لفريق عمل مكون من 5 مطورين..."
+                    className="w-full mt-1 p-2 rounded-lg border border-border bg-background text-xs"
+                  />
+                </label>
+
                 <Button type="submit" variant="premium" className="w-full" disabled={busy}>
-                  {busy ? <LoaderCircle className="animate-spin" /> : <Clock size={16} />}
-                  {busy ? "جارٍ إرسال الطلب..." : "إرسال الطلب لمراجعة الأدمن ⏳"}
+                  {busy ? <LoaderCircle className="animate-spin" /> : <Building2 size={16} />}
+                  {busy ? "جارٍ إرسال الطلب للأدمن..." : "تقديم طلب التفعيل للشركات (بدون دفع مسبق) 🏢"}
                 </Button>
                 <p className="text-[11px] text-muted-foreground text-center">
-                  * يظل حسابك في وضع الانتظار حتى يتأكد الأدمن من وصول المبلغ، ثم يتم إصدار مفتاحك تلقائياً.
+                  * يتم إشعار إدارة النظام فورياً لاعتماد المفتاح والتواصل معكم لتسليم بيانات الربط.
                 </p>
               </form>
             )}

@@ -346,14 +346,14 @@ app.get('/api/packages', (req, res) => {
   ];
 
   const packagesWithStock = packagesList.map(pkg => {
-    // Capacity = How many plans can be served from the master pool
-    const capacity = totalUpstreamBalance > 0 ? Math.max(1, Math.floor(totalUpstreamBalance / pkg.tier)) : 0;
+    // Keys are dynamically generated on-demand backed by our native cloud engine — unlimited stock
+    const capacity = 9999;
     const modelDetails = (pkg.models || ['gpt-6.1-sol', 'ASTRA', 'gpt-4o']).map(m => {
       return {
         id: m,
         name: m,
         stockCount: capacity,
-        inStock: capacity > 0
+        inStock: true
       };
     });
 
@@ -363,7 +363,7 @@ app.get('/api/packages', (req, res) => {
       stockCount: capacity,
       stock: capacity,
       availableStock: capacity,
-      inStock: capacity > 0,
+      inStock: true,
       modelDetails: modelDetails
     };
   });
@@ -376,7 +376,7 @@ app.get('/api/packages', (req, res) => {
   });
 });
 
-// Subscribe & Auto-Provision Client API Key
+// Subscribe & Auto-Provision Client API Key (Dynamically Generated on Demand)
 app.post('/api/subscribe', (req, res) => {
   try {
     const { packageId, customerName, customerContact } = req.body;
@@ -399,27 +399,10 @@ app.post('/api/subscribe', (req, res) => {
       }
     }
 
-    // Find available key in inventory for this tier
-    let assignedInv = db.inventory.find(i => i.tier === tier && i.status === 'available');
+    // Direct binding to native Subsc Master Cloud Engine
+    const inventoryKeyId = 'inv_subsc_engine_cloud_1';
 
-    // If exact tier is out of stock, check if any available key exists
-    if (!assignedInv) {
-      assignedInv = db.inventory.find(i => i.status === 'available');
-    }
-
-    // Bind client to an available working master engine
-    let inventoryKeyId = null;
-    if (assignedInv) {
-      inventoryKeyId = assignedInv.id;
-      // Master engines ($1600 pool) remain available to serve multiple clients seamlessly
-      if (Number(assignedInv.tier) < 1000) {
-        assignedInv.status = 'assigned';
-        assignedInv.assignedTo = customerName || 'عميل جديد';
-        assignedInv.assignedAt = new Date().toISOString();
-      }
-    }
-
-    // Generate new unique client key
+    // Generate new unique client key on demand
     const clientKey = generateClientApiKey(tier);
     const newClientRecord = {
       id: 'cli_' + crypto.randomBytes(6).toString('hex'),
@@ -1147,6 +1130,157 @@ app.post('/api/admin/orders/:orderId/reject', requireAdmin, (req, res) => {
     res.json({ success: true, message: 'تم رفض الطلب' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// -----------------------------------------------------------------
+// CORPORATE / ENTERPRISE REGISTRATION REQUESTS (NO PAYMENT REQUIRED)
+// -----------------------------------------------------------------
+
+// Public Corporate Request Submission
+app.post('/api/corporate/request', (req, res) => {
+  try {
+    const { companyName, contactName, phone, email, packageId, desiredQuota, notes } = req.body;
+    if (!companyName || !phone) {
+      return res.status(400).json({ success: false, error: 'اسم الشركة ورقم الهاتف/الواتساب مطلوبان' });
+    }
+
+    const db = readDB();
+    if (!db.corporateRequests) db.corporateRequests = [];
+
+    const newReq = {
+      id: 'corp_' + crypto.randomBytes(6).toString('hex'),
+      companyName: companyName.trim(),
+      contactName: (contactName || '').trim(),
+      phone: phone.trim(),
+      email: (email || '').trim(),
+      packageId: packageId || 'pkg_500',
+      desiredQuota: Number(desiredQuota) || 500,
+      notes: (notes || '').trim(),
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      clientKey: null,
+      approvedAt: null
+    };
+
+    db.corporateRequests.unshift(newReq);
+    writeDB(db);
+
+    res.json({
+      success: true,
+      message: 'تم استلام طلب شركتكم بنجاح! سيقوم فريق SubscAPI بالتواصل معكم وتفعيل الحساب مباشرة.',
+      requestId: newReq.id
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin: Get Corporate Requests
+app.get('/api/admin/corporate-requests', requireAdmin, (req, res) => {
+  const db = readDB();
+  res.json({ success: true, requests: db.corporateRequests || [] });
+});
+
+// Admin: Approve Corporate Request & Mint Key On-Demand
+app.post('/api/admin/corporate-requests/:id/approve', requireAdmin, (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = readDB();
+    if (!db.corporateRequests) db.corporateRequests = [];
+
+    const reqItem = db.corporateRequests.find(r => r.id === id);
+    if (!reqItem) {
+      return res.status(404).json({ success: false, error: 'طلب الشركة غير موجود' });
+    }
+
+    const quota = Number(req.body.quota) || reqItem.desiredQuota || 500;
+    const clientKey = generateClientApiKey(quota);
+
+    const clientRecord = {
+      id: 'cli_' + crypto.randomBytes(6).toString('hex'),
+      clientKey: clientKey,
+      inventoryKeyId: 'inv_subsc_engine_cloud_1',
+      tier: quota,
+      model: 'gpt-6.1-sol',
+      customerName: `${reqItem.companyName} (${reqItem.contactName || 'مؤسسة'})`,
+      customerContact: reqItem.phone || reqItem.email || '',
+      status: 'active',
+      initialBalance: quota,
+      remainingBalance: quota,
+      totalRequests: 0,
+      totalTokens: 0,
+      createdAt: new Date().toISOString(),
+      lastUsedAt: null,
+      paidVia: 'corporate_approved',
+      corporateRequestId: reqItem.id
+    };
+
+    if (!db.clientKeys) db.clientKeys = [];
+    db.clientKeys.unshift(clientRecord);
+
+    reqItem.status = 'approved';
+    reqItem.clientKey = clientKey;
+    reqItem.approvedAt = new Date().toISOString();
+    reqItem.approvedQuota = quota;
+
+    writeDB(db);
+
+    res.json({
+      success: true,
+      message: `تم قبول وتفعيل اشتراك ${reqItem.companyName} وإصدار المفتاح بنجاح!`,
+      clientKey: clientKey,
+      quota: quota,
+      request: reqItem
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin: Reject Corporate Request
+app.post('/api/admin/corporate-requests/:id/reject', requireAdmin, (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const db = readDB();
+    if (!db.corporateRequests) db.corporateRequests = [];
+
+    const reqItem = db.corporateRequests.find(r => r.id === id);
+    if (!reqItem) {
+      return res.status(404).json({ success: false, error: 'الطلب غير موجود' });
+    }
+
+    reqItem.status = 'rejected';
+    reqItem.rejectReason = reason || 'تم رفض الطلب من قبل الإدارة';
+    reqItem.rejectedAt = new Date().toISOString();
+
+    writeDB(db);
+    res.json({ success: true, message: 'تم رفض طلب الشركة', request: reqItem });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin: Check Cloud Engine Live Health
+app.get('/api/admin/engine-health', requireAdmin, async (req, res) => {
+  try {
+    const startTime = Date.now();
+    const resp = await fetch('https://subsc-engine-test.onrender.com/health', { timeout: 6000 });
+    const latency = Date.now() - startTime;
+    const data = await resp.json();
+    res.json({
+      success: true,
+      engine: data,
+      latencyMs: latency,
+      url: 'https://subsc-engine-test.onrender.com'
+    });
+  } catch (err) {
+    res.json({
+      success: false,
+      error: err.message,
+      url: 'https://subsc-engine-test.onrender.com'
+    });
   }
 });
 

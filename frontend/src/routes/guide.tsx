@@ -82,11 +82,11 @@ const guides = [
     title: "أداة Codex الرسمية. ربط فوري عبر ملف config.toml أو auth.json.",
     steps: [
       "مسار ملف الإعداد: للماك ~/.codex/config.toml وللويندوز %USERPROFILE%\\.codex\\config.toml.",
-      "عيّن wire_api إلى 'responses' لضمان أعلى سرعة لمعالجة طلبات الوكيل.",
-      "أضف مفتاحك في ملف ~/.codex/auth.json أو في متغيرات النظام OPENAI_API_KEY.",
-      "يمكنك أيضاً التهيئة التلقائية بضغطة زر عبر أمر PowerShell أو Terminal!",
+      "عيّن wire_api إلى 'responses' لضمان أعلى سرعة لمعالجة طلبات الوكيل التفاعلية.",
+      "يمكنك وضع المفتاح مباشرة داخل experimental_bearer_token أو في ~/.codex/auth.json.",
+      "سيرفر السحابة الخاص بنا يدعم بروتوكول responses و streaming بدون تقطيع وبأعلى سرعة استجابة.",
     ],
-    code: `# ملف الإعداد: ~/.codex/config.toml (ماك) أو %USERPROFILE%\\.codex\\config.toml (ويندوز)\nmodel = "gpt-6.1-sol"\nmodel_provider = "subscapi"\n\n[model_providers.subscapi]\nname = "SubscAPI Gateway"\nbase_url = "${endpoint}"\nwire_api = "responses"\nenv_key = "OPENAI_API_KEY"\n\n# ملف المفتاح: ~/.codex/auth.json\n{\n  "OPENAI_API_KEY": "sk-subsc-YOUR-KEY"\n}`,
+    code: `# الإعداد المباشر في ~/.codex/config.toml:\nmodel_provider = "OpenAI"\nmodel = "gpt-6.1-sol"\nreview_model = "gpt-6.1-sol"\nweb_search = "live"\n\n[model_providers.OpenAI]\nname = "OpenAI"\nbase_url = "${endpoint}"\nwire_api = "responses"\nrequires_openai_auth = false\nexperimental_bearer_token = "sk-subsc-YOUR-KEY"\n\n# أو الطريقة القياسية مع auth.json:\n# ~/.codex/auth.json -> {"OPENAI_API_KEY": "sk-subsc-YOUR-KEY"}`,
   },
   {
     name: "Python SDK",
