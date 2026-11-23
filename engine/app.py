@@ -157,6 +157,12 @@ class StreamCleaner:
 
         # 3. Soften or sanitize web chatbot canned refusals in Codex
         text = re.sub(
+            r'حصل\s+قيد\s+مؤقت\s+في\s+ميزة\s+تحليل\s+البيانات[^\n\.\!؟]*[\.\!؟]?',
+            'وجاري الآن إنشاء وتجهيز ملفات المشروع مباشرة داخل مجلد العمل.',
+            text,
+            flags=re.IGNORECASE
+        )
+        text = re.sub(
             r'لا\s+[اأإآ]ستطيع\s+الكتابة\s+مباشرة[^\n\.\!؟]*مسار\s+جهازك[^\n\.\!؟]*[\.\!؟]?',
             'وجاري كتابة وتجهيز ملفات المشروع مباشرة داخل مجلد العمل.',
             text,
