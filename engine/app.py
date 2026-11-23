@@ -836,17 +836,25 @@ def extract_code_files(content: str) -> str:
 
 
 def generate_fallback_project(user_prompt: str, assistant_text: str) -> str:
-    prompt_lower = (user_prompt + " " + assistant_text).lower()
+    prompt_user_lower = user_prompt.lower()
+    prompt_all_lower = (user_prompt + " " + assistant_text).lower()
+
+    # Only generate fallback project if user explicitly requested creating/building/coding
+    action_keywords = ["أنشئ", "ابني", "اعمل", "سوي", "جهّز", "اكتب", "صمم", "غير", "عدل", "build", "create", "make", "generate", "code", "write", "setup"]
+    has_action = any(k in prompt_user_lower for k in action_keywords)
+    if not has_action:
+        return ""
+
     keywords = ["متجر", "store", "landing", "ليدنج", "صفحة", "موقع", "مشروع", "index.html", "html", "web", "ساعة", "ساعات", "ملابس", "watch"]
-    if not any(k in prompt_lower for k in keywords):
+    if not any(k in prompt_all_lower for k in keywords):
         return ""
 
     title = "متجر إلكتروني فاخر"
-    if "ساعات" in prompt_lower or "ساعة" in prompt_lower or "watch" in prompt_lower or "timezone" in prompt_lower:
+    if "ساعات" in prompt_all_lower or "ساعة" in prompt_all_lower or "watch" in prompt_all_lower or "timezone" in prompt_all_lower:
         title = "TIMEZONE — متجر الساعات الفاخرة"
-    elif "ملابس" in prompt_lower or "hero" in prompt_lower or "clothes" in prompt_lower:
+    elif "ملابس" in prompt_all_lower or "hero" in prompt_all_lower or "clothes" in prompt_all_lower:
         title = "HERO — براند الملابس العصرية"
-    elif "geor" in prompt_lower or "بشرة" in prompt_lower or "skin" in prompt_lower:
+    elif "geor" in prompt_all_lower or "بشرة" in prompt_all_lower or "skin" in prompt_all_lower:
         title = "GEOR — منتجات العناية بالبشرة"
 
     html_code = f"""<!DOCTYPE html>
@@ -2045,13 +2053,18 @@ async def health_check():
 @app.get("/models", dependencies=[Depends(verify_api_key)])
 async def list_models():
     models_def = [
-        {"id": "gpt-6.1-sol", "display_name": "GPT-6.1 Sol (Flagship Code & Agents)"},
+        {"id": "gpt-6.1-sol", "display_name": "GPT-6.1 Sol"},
         {"id": "gpt-6", "display_name": "GPT-6 (Astra)"},
         {"id": "gpt-6-sol", "display_name": "GPT-6 Sol"},
         {"id": "gpt-6-astra", "display_name": "GPT-6 Astra"},
+        {"id": "gpt-6-luna", "display_name": "GPT-6 Luna"},
+        {"id": "gpt-6.1-terra", "display_name": "GPT-6.1 Terra"},
         {"id": "gpt-5.6-sol", "display_name": "GPT-5.6 Sol"},
         {"id": "gpt-5.6", "display_name": "GPT-5.6 (Sol)"},
-        {"id": "gpt-6.1-terra", "display_name": "GPT-6.1 Terra"},
+        {"id": "gpt-5.6-terra", "display_name": "GPT-5.6 Terra"},
+        {"id": "gpt-5.6-luna", "display_name": "GPT-5.6 Luna"},
+        {"id": "gpt-5.5", "display_name": "GPT-5.5"},
+        {"id": "gpt-5.4", "display_name": "GPT-5.4"},
         {"id": "astra", "display_name": "ASTRA (Fast Creative & Code)"},
         {"id": "gpt-4o", "display_name": "GPT-4o (Compatible)"},
         {"id": "auto", "display_name": "Auto (Optimized Routing)"}
