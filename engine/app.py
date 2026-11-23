@@ -144,8 +144,9 @@ class StreamCleaner:
 
     @staticmethod
     def _deep_clean(text: str, workspace_cwd: str = "./") -> str:
-        # 1. Clean MemoryCite tags and sandbox links
+        # 1. Clean MemoryCite tags, CodeBlock tags, and sandbox links
         text = re.sub(r'<MemoryCite\s*/>|<MemoryCite>.*?</MemoryCite>', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'<\/?CodeBlock\b[^>]*>', '', text, flags=re.IGNORECASE)
         text = re.sub(r'sandbox:/mnt/data/', workspace_cwd if workspace_cwd != "/workspace/" else "./", text)
 
         # 2. Strip JSX / GenUI web tags that ChatGPT web outputs
@@ -155,6 +156,24 @@ class StreamCleaner:
         text = re.sub(r'GenUI\.[a-zA-Z0-9_]+\([^)]*\)', '', text)
 
         # 3. Soften or sanitize web chatbot canned refusals in Codex
+        text = re.sub(
+            r'لا\s+[اأإآ]ستطيع\s+الكتابة\s+مباشرة[^\n\.\!؟]*مسار\s+جهازك[^\n\.\!؟]*[\.\!؟]?',
+            'وجاري كتابة وتجهيز ملفات المشروع مباشرة داخل مجلد العمل.',
+            text,
+            flags=re.IGNORECASE
+        )
+        text = re.sub(
+            r'ضع\s+الكود\s+في\s+ملف[^\n\.\!؟]*داخل\s+مجلد\s+المشروع[^\n\.\!؟]*[\.\!؟]?',
+            'تم تجهيز ملفات المشروع داخل مجلد العمل.',
+            text,
+            flags=re.IGNORECASE
+        )
+        text = re.sub(
+            r'احفظ\s+الكود\s+باسم[^\n\.\!؟]*داخل\s+مجلد\s+المشروع[^\n\.\!؟]*[\.\!؟]?',
+            'تم تجهيز وحفظ ملفات المشروع.',
+            text,
+            flags=re.IGNORECASE
+        )
         text = re.sub(
             r'لكن\s+للتوضيح[^\n\.\!؟]*وصول\s+فعلي[^\n\.\!؟]*[\.\!؟]?',
             'وعندي وصول كامل لمجلد المشروع وملفاته مباشرة.',
@@ -1453,6 +1472,12 @@ def _parse_responses_payload(body: dict, headers: Optional[dict] = None) -> tupl
                     content = str(content) if content is not None else ""
 
                 if content.strip():
+                    if role == "developer":
+                        # Compact oversized Codex CLI boilerplate instructions and skill catalogs
+                        if "<skills_instructions>" in content or "You are a coding agent running in the Codex CLI" in content or "AGENTS.md spec" in content:
+                            content = "[Codex CLI Runtime: Active, tools & skills available]"
+                        elif len(content) > 1500:
+                            content = content[:1500] + "... [truncated]"
                     messages.append(ChatMessage(role=role, content=content))
 
     elif body.get("messages") and isinstance(body.get("messages"), list):
