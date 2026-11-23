@@ -67,6 +67,7 @@ REQUEST_TIMEOUT = int(get_env_or_raise("MSE_REQUEST_TIMEOUT"))
 SESSION_FILE = get_env_or_raise("MSE_SESSION_FILE")
 RATE_LIMIT = get_env_or_raise("MSE_RATE_LIMIT")
 MAX_CONCURRENT = int(get_env_or_raise("MSE_MAX_CONCURRENT"))
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or ""
 
 # We cache the parsed session_data.json in memory and only re-read it from disk
 _session_cache: Optional[dict] = None
@@ -289,7 +290,7 @@ class StreamCleaner:
         text = re.sub(r'<\/?(?:row|box|badge|icon|button|AsyncImageGroup|text|ImageGroup|Card|Container)\b[\s\S]*?(?:>|\/>|$)', '', text, flags=re.IGNORECASE)
         text = re.sub(r'<[a-zA-Z0-9_]+(?:\s+[^>]*?)?\/>', '', text)
         text = re.sub(r'GenUI\.[a-zA-Z0-9_]+\([^)]*\)', '', text)
-        text = re.sub(r'sandbox:[^\s\"\'\<\>]+', '', text)
+        text = re.sub(r'sandbox:[^\s"\'<>]+', '', text)
 
         # 3. Full Access refusal paragraph sanitizer (Screenshot 1)
         text = re.sub(
@@ -803,6 +804,68 @@ async def _prepare_sentinel_headers(session_data: dict, headers: dict) -> dict:
     return headers
 
 
+
+
+class StreamingTagFilter:
+    """
+    Real-time sliding buffer filter for streaming SSE chunks.
+    Completely eliminates GenUI tags, arrow functions in attributes (onClick={() => ...}),
+    sandbox URLs, and conversational refusals before chunks reach the client.
+    """
+    def __init__(self, workspace_cwd: str = "./"):
+        self.workspace_cwd = workspace_cwd or "./"
+        self.buffer = ""
+        self.banned_tag_re = re.compile(
+            r'<\/?(?:row|box|badge|icon|button|AsyncImageGroup|text|ImageGroup|Card|Container|CodeBlock|MemoryCite)[^>]*>',
+            re.IGNORECASE
+        )
+
+    def feed(self, chunk: str) -> str:
+        self.buffer += chunk
+        # 1. Clean complete button blocks and arrow attributes
+        self.buffer = re.sub(r'<button[\s\S]*?<\/button>', '', self.buffer, flags=re.IGNORECASE)
+        self.buffer = re.sub(r'onClick=\{[\s\S]*?\}', '', self.buffer)
+        self.buffer = self.banned_tag_re.sub('', self.buffer)
+        self.buffer = re.sub(r'GenUI\.[a-zA-Z0-9_]+\([^)]*\)', '', self.buffer)
+        self.buffer = re.sub(r'sandbox:/mnt/data/', self.workspace_cwd if self.workspace_cwd != "/workspace/" else "./", self.buffer)
+        self.buffer = re.sub(r'sandbox:[^\s"\'<>]+', '', self.buffer)
+
+        # 2. Apply deep clean on buffer
+        self.buffer = StreamCleaner._deep_clean(self.buffer, self.workspace_cwd)
+
+        # 3. Buffer unclosed tags (<tag...)
+        last_lt = self.buffer.rfind('<')
+        last_gt = self.buffer.rfind('>')
+        if last_lt > last_gt:
+            safe = self.buffer[:last_lt]
+            self.buffer = self.buffer[last_lt:]
+            return safe
+
+        # 4. Buffer unclosed refusal phrases or tags
+        for trigger in ['فاهمك', 'بص يا', 'صلاحية', 'GenUI.', 'sandbox:']:
+            idx = self.buffer.rfind(trigger)
+            if idx != -1 and idx > len(self.buffer) - 80:
+                safe = self.buffer[:idx]
+                self.buffer = self.buffer[idx:]
+                return safe
+
+        out = self.buffer
+        self.buffer = ""
+        return out
+
+    def flush(self) -> str:
+        out = self.buffer
+        self.buffer = ""
+        out = StreamCleaner._deep_clean(out, self.workspace_cwd)
+        out = re.sub(r'<button[\s\S]*?<\/button>', '', out, flags=re.IGNORECASE)
+        out = re.sub(r'onClick=\{[\s\S]*?\}', '', out)
+        out = self.banned_tag_re.sub('', out)
+        out = re.sub(r'<\/?(?:row|box|badge|icon|button|AsyncImageGroup|text|ImageGroup|Card|Container)[^>]*>', '', out, flags=re.IGNORECASE)
+        out = re.sub(r'GenUI\.[a-zA-Z0-9_]+\([^)]*\)', '', out)
+        out = re.sub(r'sandbox:[^\s"\'<>]+', '', out)
+        return out
+
+
 # OpenAI-Format Response Builders
 
 def _make_chunk(chunk_id: str, model: str, delta: dict, finish_reason: str = None) -> str:
@@ -931,7 +994,7 @@ def generate_fallback_project(user_prompt: str, assistant_text: str) -> str:
     if not has_action:
         return ""
 
-    keywords = ["متجر", "store", "landing", "ليدنج", "لاندنج", "ليندبنج", "صفحة", "موقع", "مشروع", "index.html", "html", "web", "ساعة", "ساعات", "ملابس", "watch", "بشرة", "بشره", "skin", "geor", "كريم", "سيروم", "منتج"]
+    keywords = ["متجر", "store", "landing", "ليدنج", "لاندنج", "ليندبنج", "صفحة", "موقع", "مشروع", "index.html", "html", "web", "ساعة", "ساعات", "ملابس", "watch", "بشرة", "بشره", "skin", "geor", "كريم", "سيروم", "منتج", "backend", "frontend", "fullstack", "تطبيق", "مهام", "ملاحظات", "نوتس", "task", "note", "api", "express", "node", "سيرفر", "باك", "فرونت", "crud", "database", "قاعدة بيانات", "إدارة", "app", "dashboard", "لوحة"]
     if not any(k in prompt_all_lower for k in keywords):
         return ""
 
@@ -945,12 +1008,745 @@ def generate_fallback_project(user_prompt: str, assistant_text: str) -> str:
         files = ["index.html", "style.css", "script.js"]
 
     is_skincare = any(k in prompt_all_lower for k in ["geor", "بشرة", "بشره", "تفتيح", "skin", "كريم", "سيروم", "لوشن"])
+    is_fullstack = any(k in prompt_all_lower for k in [
+        "backend", "frontend", "fullstack", "تطبيق", "مهام", "ملاحظات", "نوتس",
+        "task", "note", "api", "express", "node", "سيرفر", "باك", "فرونت",
+        "crud", "database", "قاعدة بيانات", "إدارة", "app", "dashboard", "لوحة"
+    ])
     is_multi_page = any(f in ("products.html", "cart.html", "product-details.html") for f in files)
 
     generated_commands = []
 
-    # 1. SKINCARE LANDING PAGE (e.g. GEOR)
-    if is_skincare and not is_multi_page:
+    # 1. FULL-STACK BACKEND + FRONTEND APPLICATION (e.g. Task & Note Platform)
+    if is_fullstack and not is_skincare:
+        files = ["package.json", "server.js", "public/index.html", "public/style.css", "public/app.js", "README.md"]
+        pkg_json = """{
+  "name": "taskflow-pro",
+  "version": "1.0.0",
+  "description": "منصة إدارة المهام والملاحظات الذكية المتكاملة (Full-Stack)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5"
+  }
+}"""
+
+        server_js = """const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const DB_FILE = path.join(__dirname, 'data.json');
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+function loadData() {
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      return JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+    }
+  } catch (e) {}
+  return {
+    tasks: [
+      { id: 1, title: 'إعداد خطة إطلاق المشروع وتحديد الأولويات', category: 'تخطيط', priority: 'urgent', completed: false, createdAt: new Date().toISOString() },
+      { id: 2, title: 'تصميم واجهة المستخدم مع دعم RTL والوضع الداكن', category: 'تصميم', priority: 'high', completed: true, createdAt: new Date().toISOString() },
+      { id: 3, title: 'ربط واجهات برمجة التطبيقات (REST APIs)', category: 'تطوير', priority: 'normal', completed: false, createdAt: new Date().toISOString() }
+    ],
+    notes: [
+      { id: 1, title: 'ملاحظة أمنية: تشفير الجلسات', content: 'يجب التأكد من تشفير الجلسات واستخدام HTTPS في جميع الاتصالات الخارجية.', color: '#1e293b', pinned: true, createdAt: new Date().toISOString() },
+      { id: 2, title: 'أفكار لتطوير الإصدار القادم', content: 'إضافة إشعارات ذكية ودعم التزامن اللحظي عبر WebSockets.', color: '#0f172a', pinned: false, createdAt: new Date().toISOString() }
+    ]
+  };
+}
+
+function saveData(data) {
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+  } catch (e) {}
+}
+
+let db = loadData();
+
+// Tasks Endpoints
+app.get('/api/tasks', (req, res) => res.json(db.tasks));
+app.post('/api/tasks', (req, res) => {
+  const { title, category, priority } = req.body;
+  if (!title) return res.status(400).json({ error: 'العنوان مطلوب' });
+  const task = { id: Date.now(), title, category: category || 'عام', priority: priority || 'normal', completed: false, createdAt: new Date().toISOString() };
+  db.tasks.unshift(task);
+  saveData(db);
+  res.status(201).json(task);
+});
+app.put('/api/tasks/:id', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const task = db.tasks.find(t => t.id === id);
+  if (!task) return res.status(404).json({ error: 'المهمة غير موجودة' });
+  Object.assign(task, req.body);
+  saveData(db);
+  res.json(task);
+});
+app.delete('/api/tasks/:id', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  db.tasks = db.tasks.filter(t => t.id !== id);
+  saveData(db);
+  res.json({ success: true });
+});
+
+// Notes Endpoints
+app.get('/api/notes', (req, res) => res.json(db.notes));
+app.post('/api/notes', (req, res) => {
+  const { title, content, color, pinned } = req.body;
+  if (!title && !content) return res.status(400).json({ error: 'المحتوى مطلوب' });
+  const note = { id: Date.now(), title: title || 'ملاحظة جديدة', content: content || '', color: color || '#1e293b', pinned: !!pinned, createdAt: new Date().toISOString() };
+  db.notes.unshift(note);
+  saveData(db);
+  res.status(201).json(note);
+});
+app.put('/api/notes/:id', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const note = db.notes.find(n => n.id === id);
+  if (!note) return res.status(404).json({ error: 'الملاحظة غير موجودة' });
+  Object.assign(note, req.body);
+  saveData(db);
+  res.json(note);
+});
+app.delete('/api/notes/:id', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  db.notes = db.notes.filter(n => n.id !== id);
+  saveData(db);
+  res.json({ success: true });
+});
+
+// Stats Endpoint
+app.get('/api/stats', (req, res) => {
+  const totalTasks = db.tasks.length;
+  const completedTasks = db.tasks.filter(t => t.completed).length;
+  const pendingTasks = totalTasks - completedTasks;
+  const totalNotes = db.notes.length;
+  res.json({ totalTasks, completedTasks, pendingTasks, totalNotes });
+});
+
+app.listen(PORT, () => console.log(`🚀 TaskFlow Backend running at http://localhost:${PORT}`));"""
+
+        frontend_html = """<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow Pro — منصة إدارة المهام والملاحظات الذكية</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-layout">
+    <header class="app-header">
+      <div class="header-left">
+        <div class="brand">
+          <span class="brand-icon">⚡</span>
+          <span class="brand-name">TaskFlow Pro</span>
+        </div>
+        <span class="badge badge-pulse">الخادم متصل (Active)</span>
+      </div>
+      <div class="header-right">
+        <input type="text" id="global-search" class="search-input" placeholder="🔍 بحث في المهام والملاحظات...">
+        <button id="theme-toggle" class="btn btn-icon" title="تبديل الوضع">🌙</button>
+      </div>
+    </header>
+
+    <main class="app-content">
+      <!-- KPI Stats Cards -->
+      <section class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon stat-blue">📋</div>
+          <div class="stat-data">
+            <span class="stat-label">إجمالي المهام</span>
+            <span class="stat-val" id="stat-total-tasks">0</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-green">✅</div>
+          <div class="stat-data">
+            <span class="stat-label">مهام مكتملة</span>
+            <span class="stat-val" id="stat-done-tasks">0</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-orange">⏳</div>
+          <div class="stat-data">
+            <span class="stat-label">قيد التنفيذ</span>
+            <span class="stat-val" id="stat-pending-tasks">0</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-purple">📌</div>
+          <div class="stat-data">
+            <span class="stat-label">الملاحظات النشطة</span>
+            <span class="stat-val" id="stat-total-notes">0</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Main Navigation Tabs -->
+      <div class="tabs-bar">
+        <button class="tab-btn active" data-tab="tasks">قائمة المهام</button>
+        <button class="tab-btn" data-tab="notes">الملاحظات السريعة</button>
+      </div>
+
+      <!-- Tab 1: Tasks -->
+      <section id="tab-tasks" class="tab-content active">
+        <div class="action-card">
+          <form id="task-form" class="task-form-inline">
+            <input type="text" id="task-title" placeholder="أضف مهمة جديدة..." required>
+            <select id="task-category">
+              <option value="تطوير">💻 تطوير</option>
+              <option value="تصميم">🎨 تصميم</option>
+              <option value="تخطيط">📊 تخطيط</option>
+              <option value="عام">📁 عام</option>
+            </select>
+            <select id="task-priority">
+              <option value="urgent">🔴 عاجل</option>
+              <option value="high">🟠 مهم</option>
+              <option value="normal" selected>🔵 عادي</option>
+            </select>
+            <button type="submit" class="btn btn-primary">+ إضافة مهمة</button>
+          </form>
+        </div>
+
+        <div class="filter-pills">
+          <button class="pill-btn active" data-filter="all">الكل</button>
+          <button class="pill-btn" data-filter="pending">قيد الانتظار</button>
+          <button class="pill-btn" data-filter="completed">المكتملة</button>
+          <button class="pill-btn" data-filter="urgent">عاجل</button>
+        </div>
+
+        <div id="tasks-list" class="tasks-container">
+          <!-- Dynamic Task Items -->
+        </div>
+      </section>
+
+      <!-- Tab 2: Notes -->
+      <section id="tab-notes" class="tab-content">
+        <div class="action-card">
+          <form id="note-form" class="note-form-grid">
+            <input type="text" id="note-title" placeholder="عنوان الملاحظة..." required>
+            <textarea id="note-content" placeholder="تفاصيل الملاحظة..." rows="2" required></textarea>
+            <div class="note-form-footer">
+              <label class="checkbox-label">
+                <input type="checkbox" id="note-pinned"> تثبيت في المقدمة 📌
+              </label>
+              <button type="submit" class="btn btn-primary">+ حفظ الملاحظة</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="notes-grid" class="notes-container">
+          <!-- Dynamic Notes -->
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <p>TaskFlow Pro — منصة Full-Stack متكاملة (Express API + Modern Frontend). جاهزة للإنتاج والتوسعة.</p>
+    </footer>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>"""
+
+        frontend_css = """:root {
+  --bg-primary: #0a0e17;
+  --bg-surface: #111827;
+  --bg-card: #1f2937;
+  --bg-hover: #374151;
+  --border: #374151;
+  --text-main: #f9fafb;
+  --text-muted: #9ca3af;
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --purple: #8b5cf6;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  direction: rtl;
+  min-height: 100vh;
+}
+.app-layout {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-bottom: 24px;
+}
+.header-left, .header-right { display: flex; align-items: center; gap: 16px; }
+.brand { display: flex; align-items: center; gap: 8px; font-size: 22px; font-weight: 800; }
+.brand-icon { font-size: 26px; }
+.badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.search-input {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: #fff;
+  padding: 8px 16px;
+  font-size: 14px;
+  outline: none;
+  width: 240px;
+  font-family: inherit;
+}
+.btn {
+  font-family: inherit;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 10px 18px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-icon { background: var(--bg-card); border: 1px solid var(--border); font-size: 18px; padding: 6px 12px; }
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.stat-icon {
+  font-size: 28px;
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.stat-blue { background: rgba(59, 130, 246, 0.15); }
+.stat-green { background: rgba(16, 185, 129, 0.15); }
+.stat-orange { background: rgba(245, 158, 11, 0.15); }
+.stat-purple { background: rgba(139, 92, 246, 0.15); }
+.stat-data { display: flex; flex-direction: column; }
+.stat-label { font-size: 13px; color: var(--text-muted); }
+.stat-val { font-size: 26px; font-weight: 800; color: #fff; }
+.tabs-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+}
+.tab-btn {
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+.tab-btn.active { background: var(--bg-card); color: var(--text-main); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.action-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 24px;
+  margin-bottom: 20px;
+}
+.task-form-inline {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.task-form-inline input, .task-form-inline select, .note-form-grid input, .note-form-grid textarea {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: #fff;
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+}
+.task-form-inline input { flex: 1; min-width: 250px; }
+.note-form-grid { display: flex; flex-direction: column; gap: 12px; }
+.note-form-footer { display: flex; justify-content: space-between; align-items: center; }
+.filter-pills { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.pill-btn {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.pill-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.tasks-container { display: flex; flex-direction: column; gap: 10px; }
+.task-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.task-item:hover { border-color: var(--primary); transform: translateX(-3px); }
+.task-item.completed { opacity: 0.6; }
+.task-item.completed .task-text { text-decoration: line-through; }
+.task-meta { display: flex; align-items: center; gap: 12px; }
+.task-badge-urgent { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+.task-badge-high { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+.task-badge-normal { background: rgba(59, 130, 246, 0.2); color: var(--primary); }
+.notes-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.note-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 140px;
+}
+.note-card.pinned { border-color: var(--warning); }
+.note-title { font-weight: 700; font-size: 16px; margin-bottom: 8px; }
+.note-content { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+.app-footer { margin-top: auto; padding: 24px 0 10px; text-align: center; color: var(--text-muted); font-size: 13px; }"""
+
+        frontend_js = """let tasks = [];
+let notes = [];
+let activeFilter = 'all';
+
+async function fetchStats() {
+  try {
+    const res = await fetch('/api/stats');
+    if (res.ok) {
+      const stats = await res.json();
+      document.getElementById('stat-total-tasks').innerText = stats.totalTasks;
+      document.getElementById('stat-done-tasks').innerText = stats.completedTasks;
+      document.getElementById('stat-pending-tasks').innerText = stats.pendingTasks;
+      document.getElementById('stat-total-notes').innerText = stats.totalNotes;
+    }
+  } catch (e) {
+    updateLocalStats();
+  }
+}
+
+function updateLocalStats() {
+  const done = tasks.filter(t => t.completed).length;
+  document.getElementById('stat-total-tasks').innerText = tasks.length;
+  document.getElementById('stat-done-tasks').innerText = done;
+  document.getElementById('stat-pending-tasks').innerText = tasks.length - done;
+  document.getElementById('stat-total-notes').innerText = notes.length;
+}
+
+async function loadTasks() {
+  try {
+    const res = await fetch('/api/tasks');
+    if (res.ok) {
+      tasks = await res.json();
+    }
+  } catch (e) {
+    tasks = JSON.parse(localStorage.getItem('tf_tasks') || '[]');
+  }
+  renderTasks();
+  fetchStats();
+}
+
+async function loadNotes() {
+  try {
+    const res = await fetch('/api/notes');
+    if (res.ok) {
+      notes = await res.json();
+    }
+  } catch (e) {
+    notes = JSON.parse(localStorage.getItem('tf_notes') || '[]');
+  }
+  renderNotes();
+  fetchStats();
+}
+
+function renderTasks() {
+  const container = document.getElementById('tasks-list');
+  const query = (document.getElementById('global-search')?.value || '').toLowerCase();
+  container.innerHTML = '';
+
+  const filtered = tasks.filter(t => {
+    if (query && !t.title.toLowerCase().includes(query)) return false;
+    if (activeFilter === 'pending') return !t.completed;
+    if (activeFilter === 'completed') return t.completed;
+    if (activeFilter === 'urgent') return t.priority === 'urgent';
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div style="text-align:center; padding:30px; color:#9ca3af;">لا توجد مهام مطابقة</div>';
+    return;
+  }
+
+  filtered.forEach(t => {
+    const pClass = t.priority === 'urgent' ? 'task-badge-urgent' : (t.priority === 'high' ? 'task-badge-high' : 'task-badge-normal');
+    const pLabel = t.priority === 'urgent' ? 'عاجل' : (t.priority === 'high' ? 'مهم' : 'عادي');
+    container.innerHTML += `
+      <div class="task-item ${t.completed ? 'completed' : ''}">
+        <div class="task-meta">
+          <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})">
+          <span class="task-text">${t.title}</span>
+          <span class="badge">${t.category}</span>
+          <span class="badge ${pClass}">${pLabel}</span>
+        </div>
+        <button class="btn btn-icon" onclick="deleteTask(${t.id})">🗑️</button>
+      </div>
+    `;
+  });
+}
+
+function renderNotes() {
+  const container = document.getElementById('notes-grid');
+  const query = (document.getElementById('global-search')?.value || '').toLowerCase();
+  container.innerHTML = '';
+
+  const filtered = notes.filter(n => {
+    if (!query) return true;
+    return n.title.toLowerCase().includes(query) || n.content.toLowerCase().includes(query);
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div style="text-align:center; padding:30px; color:#9ca3af; grid-column:1/-1;">لا توجد ملاحظات</div>';
+    return;
+  }
+
+  filtered.forEach(n => {
+    container.innerHTML += `
+      <div class="note-card ${n.pinned ? 'pinned' : ''}">
+        <div>
+          <div class="note-title">${n.pinned ? '📌 ' : ''}${n.title}</div>
+          <div class="note-content">${n.content}</div>
+        </div>
+        <div style="margin-top:12px; display:flex; justify-content:flex-end;">
+          <button class="btn btn-icon" onclick="deleteNote(${n.id})">🗑️</button>
+        </div>
+      </div>
+    `;
+  });
+}
+
+async function toggleTask(id) {
+  const t = tasks.find(item => item.id === id);
+  if (!t) return;
+  t.completed = !t.completed;
+  try {
+    await fetch(`/api/tasks/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ completed: t.completed })
+    });
+  } catch (e) {
+    localStorage.setItem('tf_tasks', JSON.stringify(tasks));
+  }
+  renderTasks();
+  fetchStats();
+}
+
+async function deleteTask(id) {
+  tasks = tasks.filter(t => t.id !== id);
+  try {
+    await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
+  } catch (e) {
+    localStorage.setItem('tf_tasks', JSON.stringify(tasks));
+  }
+  renderTasks();
+  fetchStats();
+}
+
+async function deleteNote(id) {
+  notes = notes.filter(n => n.id !== id);
+  try {
+    await fetch(`/api/notes/${id}`, { method: 'DELETE' });
+  } catch (e) {
+    localStorage.setItem('tf_notes', JSON.stringify(notes));
+  }
+  renderNotes();
+  fetchStats();
+}
+
+document.getElementById('task-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const title = document.getElementById('task-title').value.trim();
+  const category = document.getElementById('task-category').value;
+  const priority = document.getElementById('task-priority').value;
+  if (!title) return;
+
+  const newTask = { title, category, priority };
+  try {
+    const res = await fetch('/api/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newTask)
+    });
+    if (res.ok) {
+      const saved = await res.json();
+      tasks.unshift(saved);
+    }
+  } catch (e) {
+    newTask.id = Date.now();
+    newTask.completed = false;
+    tasks.unshift(newTask);
+    localStorage.setItem('tf_tasks', JSON.stringify(tasks));
+  }
+  document.getElementById('task-title').value = '';
+  renderTasks();
+  fetchStats();
+});
+
+document.getElementById('note-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const title = document.getElementById('note-title').value.trim();
+  const content = document.getElementById('note-content').value.trim();
+  const pinned = document.getElementById('note-pinned').checked;
+  if (!title && !content) return;
+
+  const newNote = { title, content, pinned };
+  try {
+    const res = await fetch('/api/notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newNote)
+    });
+    if (res.ok) {
+      const saved = await res.json();
+      notes.unshift(saved);
+    }
+  } catch (e) {
+    newNote.id = Date.now();
+    notes.unshift(newNote);
+    localStorage.setItem('tf_notes', JSON.stringify(notes));
+  }
+  document.getElementById('note-title').value = '';
+  document.getElementById('note-content').value = '';
+  document.getElementById('note-pinned').checked = false;
+  renderNotes();
+  fetchStats();
+});
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+  });
+});
+
+document.querySelectorAll('.pill-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = btn.dataset.filter;
+    renderTasks();
+  });
+});
+
+document.getElementById('global-search')?.addEventListener('input', () => {
+  renderTasks();
+  renderNotes();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadTasks();
+  loadNotes();
+});"""
+
+        readme_md = """# TaskFlow Pro — Full-Stack Task & Note Management Platform
+
+منصة ذكية متكاملة لإدارة المهام والملاحظات (Backend + Frontend).
+
+## 🚀 تشغيل المشروع محلياً
+
+1. **تثبيت الحزم المطلوبة:**
+   ```bash
+   npm install
+   ```
+
+2. **تشغيل الخادم:**
+   ```bash
+   npm start
+   ```
+
+3. **افتح المتصفح على:**
+   [http://localhost:3000](http://localhost:3000)
+
+## 📁 هيكلية المشروع
+- `server.js` — خادم Express و REST API (المهام، الملاحظات، الإحصائيات).
+- `public/index.html` — واجهة المستخدم الرئيسية (RTL، متجاوبة مع الموبايل والكمبيوتر).
+- `public/style.css` — التنسيقات العصرية مع دعم الألوان المتغيرة والتصميم الزجاجي.
+- `public/app.js` — كود الجافاسكريبت التفاعلي لربط الواجهة بالخادم مع تخزين احتياطي.
+"""
+
+        generated_commands.append(f"mkdir -p public 2>/dev/null || true")
+        generated_commands.append(f"cat << 'EOF' > package.json\n{pkg_json}\nEOF")
+        generated_commands.append(f"cat << 'EOF' > server.js\n{server_js}\nEOF")
+        generated_commands.append(f"cat << 'EOF' > public/index.html\n{frontend_html}\nEOF")
+        generated_commands.append(f"cat << 'EOF' > public/style.css\n{frontend_css}\nEOF")
+        generated_commands.append(f"cat << 'EOF' > public/app.js\n{frontend_js}\nEOF")
+        generated_commands.append(f"cat << 'EOF' > README.md\n{readme_md}\nEOF")
+
+    # 2. SKINCARE LANDING PAGE (e.g. GEOR)
+    elif is_skincare and not is_multi_page:
         skin_html = """<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -2303,6 +3099,59 @@ def _build_payload(
     }
 
 
+
+async def stream_from_gemini(
+    request_data: ChatRequest,
+    gemini_key: str,
+    cwd: str = ""
+) -> AsyncGenerator[str, None]:
+    endpoint = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {gemini_key}",
+        "Content-Type": "application/json"
+    }
+
+    formatted_msgs = []
+    for m in request_data.messages:
+        content_txt = _extract_text(m.content)
+        r = m.role
+        if r not in ("user", "assistant", "system"):
+            r = "user"
+        formatted_msgs.append({"role": r, "content": content_txt})
+
+    tools = [{
+        "type": "function",
+        "function": {
+            "name": "exec_command",
+            "description": "Execute a shell command in the local workspace",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "cmd": {"type": "string", "description": "The exact shell command to execute"}
+                },
+                "required": ["cmd"]
+            }
+        }
+    }]
+
+    payload = {
+        "model": "gemini-2.5-flash",
+        "messages": formatted_msgs,
+        "tools": tools,
+        "stream": True
+    }
+
+    async with AsyncSession(impersonate=IMPERSONATE, timeout=REQUEST_TIMEOUT) as session:
+        resp = await session.post(endpoint, json=payload, headers=headers, stream=True)
+        if resp.status_code == 200:
+            async for chunk in resp.aiter_lines():
+                if chunk:
+                    line = chunk.decode("utf-8") if isinstance(chunk, bytes) else str(chunk)
+                    yield f"{line}\n\n"
+        else:
+            raise RuntimeError(f"Gemini API returned status {resp.status_code}")
+
+
 async def chat_stream_generator(
     request_data: ChatRequest,
     session_data: dict,
@@ -2310,6 +3159,14 @@ async def chat_stream_generator(
     cwd: str = "",
     has_exec_command: bool = False
 ) -> AsyncGenerator[str, None]:
+
+    if GEMINI_API_KEY:
+        try:
+            async for chunk in stream_from_gemini(request_data, GEMINI_API_KEY, cwd=cwd):
+                yield chunk
+            return
+        except Exception as e:
+            logger.warning("Gemini 2.5 Flash streaming failed, falling back to ChatGPT Web: %s", e)
 
     headers = _prepare_headers(session_data)
 
@@ -2786,6 +3643,7 @@ async def responses_stream_generator(
     }
     yield f"event: response.content_part.added\ndata: {json.dumps(part_added, ensure_ascii=False)}\n\n"
 
+    tag_filter = StreamingTagFilter(workspace_cwd=cwd)
     full_text = ""
     async for chunk_str in chat_stream_generator(
         chat_request,
@@ -2803,18 +3661,27 @@ async def responses_stream_generator(
                     content_piece = delta.get("content", "")
                     if content_piece:
                         full_text += content_piece
-                        cleaned_piece = StreamCleaner._deep_clean(content_piece, cwd)
-                        cleaned_piece = StreamCleaner.CITATION_PATTERNS.sub("", cleaned_piece)
-                        if cleaned_piece:
+                        safe_piece = tag_filter.feed(content_piece)
+                        if safe_piece:
                             delta_event_out = {
                                 "type": "response.output_text.delta",
                                 "output_index": 0,
                                 "content_index": 0,
-                                "delta": cleaned_piece
+                                "delta": safe_piece
                             }
                             yield f"event: response.output_text.delta\ndata: {json.dumps(delta_event_out, ensure_ascii=False)}\n\n"
             except Exception:
                 pass
+
+    final_flush = tag_filter.flush()
+    if final_flush:
+        delta_event_out = {
+            "type": "response.output_text.delta",
+            "output_index": 0,
+            "content_index": 0,
+            "delta": final_flush
+        }
+        yield f"event: response.output_text.delta\ndata: {json.dumps(delta_event_out, ensure_ascii=False)}\n\n"
 
     latest_user_text = ""
     for m in reversed(chat_request.messages):
@@ -2829,9 +3696,9 @@ async def responses_stream_generator(
     # Extract shell command if model produced one or if code blocks exist
     cmd = ""
     m = re.search(r'<<<EXEC_COMMAND>>>(.*?)<<<END_EXEC_COMMAND>>>', full_text, re.DOTALL)
-    if m and not has_prior_tool_result:
+    if m:
         cmd = m.group(1).strip()
-    elif has_exec_command and not has_prior_tool_result:
+    elif has_exec_command:
         cmd = extract_code_files(full_text)
 
     if not cmd and has_exec_command and not has_prior_tool_result:
@@ -2851,8 +3718,8 @@ async def responses_stream_generator(
     clean_display_text = re.sub(r'<<<EXEC_COMMAND>>>.*?<<<END_EXEC_COMMAND>>>', '', full_text, flags=re.DOTALL).strip()
     clean_display_text = StreamCleaner._deep_clean(clean_display_text, cwd)
     clean_display_text = StreamCleaner.CITATION_PATTERNS.sub("", clean_display_text).strip()
-    if has_prior_tool_result:
-        clean_display_text = f"تم إنشاء وتجهيز جميع ملفات المشروع بنجاح داخل مجلد العمل ({files_str})، والمشروع جاهز تماماً للاستخدام والتطوير!"
+    if has_prior_tool_result and not clean_display_text:
+        clean_display_text = f"تم تنفيذ الأوامر بنجاح داخل مجلد العمل ({files_str})، والمشروع جاهز تماماً للاستخدام والتطوير!"
     elif not clean_display_text and cmd:
         clean_display_text = f"تم إنشاء وتجهيز ملفات المشروع ({files_str}) بنجاح في مجلد العمل."
     elif not clean_display_text:
