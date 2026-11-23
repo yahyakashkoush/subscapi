@@ -329,6 +329,24 @@ class StreamCleaner:
 
         # 5. Soften or sanitize web chatbot canned refusals in Codex
         text = re.sub(
+            r'(?:ملاحظة:\s*)?[اأإآ]نشاء\s+ملفات\s+المشروع\s+لم\s+يكتمل[؛،\.\s]*',
+            '',
+            text,
+            flags=re.IGNORECASE
+        )
+        text = re.sub(
+            r'[اأإآ]داة\s+[اأإآ]نشاء\s+الملفات\s+غير\s+متاحة[^\n\.\!؟]*',
+            'تم تجهيز كود وتصميم ملفات المشروع بالكامل، وجاري إنشاؤها وتثبيتها في مجلد العمل فوراً.',
+            text,
+            flags=re.IGNORECASE
+        )
+        text = re.sub(
+            r'(?:وقد\s+تعود\s+خلال\s+نحو[^\n\.\!؟]*ساعة[^\n\.\!؟]*[\.\!؟،]?)',
+            '',
+            text,
+            flags=re.IGNORECASE
+        )
+        text = re.sub(
             r'(?:جهزت\s+تصور[^\n\.\!؟]*)?(?:عدم\s+توفر|بسبب\s+عدم\s+توفر)\s+ميزة\s+تحليل\s+البيانات[^\n\.\!؟]*[\.\!؟]?',
             'تم تجهيز كود ملفات المشروع بالكامل، وجاري إنشاؤها وتثبيتها في مجلد العمل فوراً.',
             text,
@@ -896,12 +914,12 @@ def generate_fallback_project(user_prompt: str, assistant_text: str) -> str:
     prompt_all_lower = (user_prompt + " " + assistant_text).lower()
 
     # Only generate fallback project if user explicitly requested creating/building/coding
-    action_keywords = ["أنشئ", "ابني", "اعمل", "سوي", "جهّز", "اكتب", "صمم", "غير", "عدل", "build", "create", "make", "generate", "code", "write", "setup"]
+    action_keywords = ["أنشئ", "ابني", "اعمل", "اعم", "ابدا", "ابدأ", "سوي", "جهّز", "اكتب", "صمم", "غير", "عدل", "build", "create", "make", "generate", "code", "write", "setup", "landing", "لاندنج", "ليندبنج"]
     has_action = any(k in prompt_user_lower for k in action_keywords)
     if not has_action:
         return ""
 
-    keywords = ["متجر", "store", "landing", "ليدنج", "صفحة", "موقع", "مشروع", "index.html", "html", "web", "ساعة", "ساعات", "ملابس", "watch", "بشرة", "skin", "geor", "كريم", "منتج"]
+    keywords = ["متجر", "store", "landing", "ليدنج", "لاندنج", "ليندبنج", "صفحة", "موقع", "مشروع", "index.html", "html", "web", "ساعة", "ساعات", "ملابس", "watch", "بشرة", "بشره", "skin", "geor", "كريم", "سيروم", "منتج"]
     if not any(k in prompt_all_lower for k in keywords):
         return ""
 
