@@ -1768,10 +1768,13 @@ async def responses_stream_generator(
             except Exception:
                 pass
 
-    user_prompt_text = ""
-    for m in chat_request.messages:
+    latest_user_text = ""
+    for m in reversed(chat_request.messages):
         if m.role == "user":
-            user_prompt_text += " " + _extract_text(m.content)
+            txt = _extract_text(m.content).strip()
+            if txt:
+                latest_user_text = txt
+                break
 
     has_prior_tool_result = any(m.role == "tool" for m in chat_request.messages)
 
@@ -1784,12 +1787,12 @@ async def responses_stream_generator(
         cmd = extract_code_files(full_text)
 
     if not cmd and has_exec_command and not has_prior_tool_result:
-        fallback_cmd = generate_fallback_project(user_prompt_text, full_text)
+        fallback_cmd = generate_fallback_project(latest_user_text, full_text)
         if fallback_cmd:
             cmd = fallback_cmd
 
     if has_prior_tool_result and cwd:
-        session_store.record_project_activity(cwd, user_prompt_text, files=["index.html", "style.css", "script.js"])
+        session_store.record_project_activity(cwd, latest_user_text, files=["index.html", "style.css", "script.js"])
 
     clean_display_text = re.sub(r'<<<EXEC_COMMAND>>>.*?<<<END_EXEC_COMMAND>>>', '', full_text, flags=re.DOTALL).strip()
     clean_display_text = StreamCleaner._deep_clean(clean_display_text, cwd)
@@ -1976,6 +1979,14 @@ async def responses_endpoint(request: Request):
                         except Exception:
                             pass
 
+                latest_user_text = ""
+                for m in reversed(chat_request.messages):
+                    if m.role == "user":
+                        txt = _extract_text(m.content).strip()
+                        if txt:
+                            latest_user_text = txt
+                            break
+
                 has_prior_tool_result = any(m.role == "tool" for m in chat_request.messages)
                 cmd = ""
                 m = re.search(r'<<<EXEC_COMMAND>>>(.*?)<<<END_EXEC_COMMAND>>>', full_text, re.DOTALL)
@@ -1984,8 +1995,13 @@ async def responses_endpoint(request: Request):
                 elif has_exec_command and not has_prior_tool_result:
                     cmd = extract_code_files(full_text)
 
+                if not cmd and has_exec_command and not has_prior_tool_result:
+                    fallback_cmd = generate_fallback_project(latest_user_text, full_text)
+                    if fallback_cmd:
+                        cmd = fallback_cmd
+
                 if has_prior_tool_result and cwd:
-                    session_store.record_project_activity(cwd, files=["index.html", "style.css", "script.js"])
+                    session_store.record_project_activity(cwd, latest_user_text, files=["index.html", "style.css", "script.js"])
 
                 clean_display_text = re.sub(r'<<<EXEC_COMMAND>>>.*?<<<END_EXEC_COMMAND>>>', '', full_text, flags=re.DOTALL).strip()
                 clean_display_text = StreamCleaner._deep_clean(clean_display_text, cwd)
