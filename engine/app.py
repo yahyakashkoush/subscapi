@@ -25,6 +25,8 @@ import time
 import codecs
 import asyncio
 import logging
+import hashlib
+import traceback
 from typing import AsyncGenerator, Optional, Any
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.responses import StreamingResponse, JSONResponse
@@ -1710,9 +1712,13 @@ async def responses_stream_generator(
 @app.post("/responses", dependencies=[Depends(verify_api_key)])
 @limiter.limit(RATE_LIMIT)
 async def responses_endpoint(request: Request):
-    body = await request.json()
-    headers_dict = dict(request.headers)
-    chat_request, is_stream, session_id, cwd, has_exec_command = _parse_responses_payload(body, headers_dict)
+    try:
+        body = await request.json()
+        headers_dict = dict(request.headers)
+        chat_request, is_stream, session_id, cwd, has_exec_command = _parse_responses_payload(body, headers_dict)
+    except Exception as e:
+        logger.exception("Error parsing responses payload: %s", e)
+        raise HTTPException(status_code=400, detail={"error": f"Invalid responses payload: {str(e)}"})
 
     session_data = get_session_data()
     sem = _get_semaphore()
