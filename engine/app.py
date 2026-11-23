@@ -3929,9 +3929,9 @@ async def responses_endpoint(request: Request):
                 has_prior_tool_result = any(m.role == "tool" for m in chat_request.messages)
                 cmd = ""
                 m = re.search(r'<<<EXEC_COMMAND>>>(.*?)<<<END_EXEC_COMMAND>>>', full_text, re.DOTALL)
-                if m and not has_prior_tool_result:
+                if m:
                     cmd = m.group(1).strip()
-                elif has_exec_command and not has_prior_tool_result:
+                elif has_exec_command:
                     cmd = extract_code_files(full_text)
 
                 if not cmd and has_exec_command and not has_prior_tool_result:
@@ -3945,8 +3945,8 @@ async def responses_endpoint(request: Request):
                 clean_display_text = re.sub(r'<<<EXEC_COMMAND>>>.*?<<<END_EXEC_COMMAND>>>', '', full_text, flags=re.DOTALL).strip()
                 clean_display_text = StreamCleaner._deep_clean(clean_display_text, cwd)
                 clean_display_text = StreamCleaner.CITATION_PATTERNS.sub("", clean_display_text).strip()
-                if has_prior_tool_result:
-                    clean_display_text = "تم إنشاء وتجهيز جميع ملفات المشروع بنجاح داخل مجلد العمل (index.html, style.css, script.js)، والمتجر جاهز تماماً للاستخدام!"
+                if has_prior_tool_result and not clean_display_text:
+                    clean_display_text = "تم تنفيذ الأمر بنجاح داخل مجلد العمل."
                 elif not clean_display_text and cmd:
                     clean_display_text = "تم إنشاء وتجهيز ملفات المشروع بنجاح في مجلد العمل."
                 elif not clean_display_text:
