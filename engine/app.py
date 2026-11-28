@@ -3791,12 +3791,15 @@ async def responses_stream_generator(
     clean_display_text = re.sub(r'<<<EXEC_COMMAND>>>.*?<<<END_EXEC_COMMAND>>>', '', full_text, flags=re.DOTALL).strip()
     clean_display_text = StreamCleaner._deep_clean(clean_display_text, cwd)
     clean_display_text = StreamCleaner.CITATION_PATTERNS.sub("", clean_display_text).strip()
-    if has_prior_tool_result and not clean_display_text:
-        clean_display_text = f"تم تنفيذ الأوامر بنجاح داخل مجلد العمل ({files_str})، والمشروع جاهز تماماً للاستخدام والتطوير!"
-    elif not clean_display_text and cmd:
-        clean_display_text = f"تم إنشاء وتجهيز ملفات المشروع ({files_str}) بنجاح في مجلد العمل."
-    elif not clean_display_text:
-        clean_display_text = full_text
+    if not clean_display_text:
+        if full_text.strip():
+            clean_display_text = StreamCleaner.CITATION_PATTERNS.sub("", full_text).strip()
+        elif has_prior_tool_result:
+            clean_display_text = f"تم تنفيذ الأوامر بنجاح داخل مجلد العمل ({files_str})، والمشروع جاهز تماماً للاستخدام والتطوير!"
+        elif cmd:
+            clean_display_text = f"تم تجهيز أوامر العمل للتنفيذ داخل المجلد ({files_str})."
+        else:
+            clean_display_text = "تم استلام طلبك وجاري التنفيذ."
 
     # 4. response.content_part.done
     part_done = {
@@ -4010,12 +4013,15 @@ async def responses_endpoint(request: Request):
                 clean_display_text = re.sub(r'<<<EXEC_COMMAND>>>.*?<<<END_EXEC_COMMAND>>>', '', full_text, flags=re.DOTALL).strip()
                 clean_display_text = StreamCleaner._deep_clean(clean_display_text, cwd)
                 clean_display_text = StreamCleaner.CITATION_PATTERNS.sub("", clean_display_text).strip()
-                if has_prior_tool_result and not clean_display_text:
-                    clean_display_text = "تم تنفيذ الأمر بنجاح داخل مجلد العمل."
-                elif not clean_display_text and cmd:
-                    clean_display_text = "تم إنشاء وتجهيز ملفات المشروع بنجاح في مجلد العمل."
-                elif not clean_display_text:
-                    clean_display_text = full_text
+                if not clean_display_text:
+                    if full_text.strip():
+                        clean_display_text = StreamCleaner.CITATION_PATTERNS.sub("", full_text).strip()
+                    elif has_prior_tool_result:
+                        clean_display_text = "تم تنفيذ الأوامر بنجاح داخل مجلد العمل."
+                    elif cmd:
+                        clean_display_text = "تم تجهيز أوامر العمل للتنفيذ داخل المجلد."
+                    else:
+                        clean_display_text = "تم استلام طلبك وجاري التنفيذ."
 
                 resp_id = f"resp_{uuid.uuid4().hex[:24]}"
                 item_id = f"item_{uuid.uuid4().hex[:24]}"
